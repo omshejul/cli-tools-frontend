@@ -47,7 +47,6 @@ import * as z from "zod";
 
 import {
   Format,
-  FormatResponse,
   checkApiStatus,
   getFormats,
   getVideoInfo,
@@ -55,7 +54,7 @@ import {
   DownloadProgress,
   VideoInfo,
 } from "@/lib/api";
-import { DownloadLog, DownloadLogRef } from "@/components/download-log";
+import { DownloadLogRef } from "@/components/download-log";
 
 const formSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -92,30 +91,10 @@ function organizeFormats(formats: Format[]) {
   return { videoFormats, audioFormats };
 }
 
-function formatFileSize(size: number | "N/A") {
-  if (size === "N/A") return "N/A";
-  const units = ["B", "KB", "MB", "GB"];
-  let value = size;
-  let unitIndex = 0;
 
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex++;
-  }
 
-  return `${value.toFixed(1)} ${units[unitIndex]}`;
-}
 
-function formatSpeed(bytesPerSecond: number): string {
-  return `${(bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`;
-}
 
-function formatTime(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}m ${remainingSeconds}s`;
-}
 
 export default function Home() {
   const [formats, setFormats] = useState<Format[]>([]);
@@ -125,9 +104,6 @@ export default function Home() {
   const [downloadProgress, setDownloadProgress] =
     useState<DownloadProgress | null>(null);
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
-  const [selectedFormatSize, setSelectedFormatSize] = useState<number | null>(
-    null
-  );
   const logRef = useRef<DownloadLogRef>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const placeholders = [
@@ -169,7 +145,7 @@ export default function Home() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [placeholders.length]);
 
   const onSubmit = async (values: FormSchema) => {
     if (!isApiAvailable) {

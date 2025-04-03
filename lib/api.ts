@@ -1,15 +1,5 @@
 import { API_ENDPOINTS } from './config';
 
-// Utility function to sanitize filenames while preserving Unicode characters
-function sanitizeFilename(filename: string): string {
-  // Remove or replace characters that are problematic for filesystems
-  // but preserve Unicode characters that are valid for filenames
-  return filename
-    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '') // Remove characters forbidden in most filesystems
-    .replace(/\s+/g, ' ')                   // Replace multiple spaces with single space
-    .trim();                                // Remove leading/trailing spaces
-}
-
 export interface Format {
   format_id: string;
   ext: string;
