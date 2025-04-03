@@ -42,7 +42,6 @@ import {
   getFormats,
   downloadVideo,
 } from "@/lib/api";
-import { WebSocketService, DownloadProgress } from "@/lib/websocket";
 import { DownloadLog, DownloadLogRef } from "@/components/download-log";
 
 const formSchema = z.object({
@@ -109,10 +108,6 @@ export default function Home() {
   const [videoTitle, setVideoTitle] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
-  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
-  const [downloadProgress, setDownloadProgress] =
-    useState<DownloadProgress | null>(null);
-  const wsRef = useRef<WebSocketService | null>(null);
   const logRef = useRef<DownloadLogRef>(null);
 
   const form = useForm<FormSchema>({
@@ -136,98 +131,6 @@ export default function Home() {
       }
     };
     checkApi();
-
-    // Initialize WebSocket
-    console.log("🚀 [Page] Initializing WebSocket service");
-    wsRef.current = new WebSocketService();
-
-    // Add connection state handlers
-    wsRef.current.onConnectionChange((connected) => {
-      console.log("🔌 [Page] WebSocket connection state:", connected);
-      setIsWebSocketConnected(connected);
-      if (!connected) {
-        toast.error("Lost connection to server. Please refresh the page.");
-      }
-    });
-
-    wsRef.current.connect();
-
-    wsRef.current.onProgress((progress) => {
-      console.log("📊 [Page] Progress update received:", progress);
-
-      switch (progress.status) {
-        case "log":
-          console.log("📝 [Page] Handling log message:", progress.message);
-          // Add log to the UI component
-          if (progress.level && progress.message && logRef.current) {
-            console.log(
-              "📝 [Page] Adding log to UI:",
-              progress.level,
-              progress.message
-            );
-            logRef.current.addLog(
-              progress.level as "debug" | "info" | "warning" | "error",
-              progress.message
-            );
-          } else {
-            console.warn("⚠️ [Page] Missing required log data:", {
-              level: progress.level,
-              message: progress.message,
-              logRef: !!logRef.current,
-            });
-          }
-          break;
-
-        case "downloading":
-          console.log("⬇️ [Page] Handling download progress:", progress);
-          setDownloadProgress(progress);
-          if (logRef.current) {
-            const progressMsg = `[Downloading] ${progress.progress?.toFixed(
-              1
-            )}% - ${progress.downloaded_bytes} of ${
-              progress.total_bytes
-            } bytes`;
-            logRef.current.addLog("info", progressMsg);
-          }
-          break;
-
-        case "processing":
-          console.log("⚙️ [Page] Handling processing status:", progress);
-          setDownloadProgress(progress);
-          if (progress.message && logRef.current) {
-            logRef.current.addLog("info", `[Processing] ${progress.message}`);
-          }
-          toast.info(progress.message || "Processing video...");
-          break;
-
-        case "complete":
-          console.log("✅ [Page] Handling completion:", progress);
-          if (progress.message && logRef.current) {
-            logRef.current.addLog("info", `[Complete] ${progress.message}`);
-          }
-          if (progress.filename) {
-            toast.success("Download complete! Starting file transfer...");
-          } else {
-            toast.success(progress.message || "Download complete!");
-          }
-          setDownloadProgress(null);
-          break;
-
-        case "error":
-          console.log("❌ [Page] Handling error:", progress);
-          if (progress.message && logRef.current) {
-            logRef.current.addLog("error", `[Error] ${progress.message}`);
-          }
-          toast.error(progress.message || "Download failed");
-          setDownloadProgress(null);
-          break;
-      }
-    });
-
-    return () => {
-      console.log("🔄 [Page] Cleaning up WebSocket connection");
-      wsRef.current?.disconnect();
-    };
   }, []);
 
   const onSubmit = async (values: FormSchema) => {
@@ -236,29 +139,19 @@ export default function Home() {
       return;
     }
 
-    if (!isWebSocketConnected || !wsRef.current) {
-      toast.error("Not connected to server. Please refresh the page.");
-      return;
-    }
-
     try {
       setLoading(true);
-      setDownloadProgress(null);
 
       // Clear previous logs
       if (logRef.current) {
         logRef.current.clear();
       }
 
-      const clientId = wsRef.current.getClientId();
-      console.log("🎯 [Page] Starting download with WebSocket ID:", clientId);
-
       // Start the download process
       toast.success("Starting download process...");
 
       const response = await downloadVideo({
         ...values,
-        websocket_id: clientId,
       });
 
       // Check if response is ok
@@ -300,7 +193,6 @@ export default function Home() {
       toast.error(
         error instanceof Error ? error.message : "An unexpected error occurred"
       );
-      setDownloadProgress(null);
     } finally {
       setLoading(false);
     }
@@ -466,41 +358,6 @@ export default function Home() {
                   )}
                 />
 
-                {downloadProgress &&
-                  downloadProgress.status === "downloading" && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Downloading: {downloadProgress.title}</span>
-                        <span>{downloadProgress.progress?.toFixed(1)}%</span>
-                      </div>
-                      <Progress
-                        value={downloadProgress.progress}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>
-                          Speed:{" "}
-                          {downloadProgress.speed
-                            ? formatSpeed(downloadProgress.speed)
-                            : "N/A"}
-                        </span>
-                        <span>
-                          ETA:{" "}
-                          {downloadProgress.eta
-                            ? formatTime(downloadProgress.eta)
-                            : "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                {downloadProgress &&
-                  downloadProgress.status === "processing" && (
-                    <div className="text-sm text-muted-foreground">
-                      {downloadProgress.message}
-                    </div>
-                  )}
-
                 <div className="mt-4 border rounded-md">
                   <div className="bg-muted px-4 py-2 text-sm font-medium">
                     Download Logs
@@ -510,9 +367,7 @@ export default function Home() {
 
                 <Button
                   type="submit"
-                  disabled={
-                    loading || !isApiAvailable || downloadProgress !== null
-                  }
+                  disabled={loading || !isApiAvailable}
                   className="w-full"
                 >
                   {loading ? "Processing..." : "Download"}

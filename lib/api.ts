@@ -20,7 +20,6 @@ export interface VideoRequest {
   url: string;
   format: string;
   output_dir?: string;
-  websocket_id?: string;
 }
 
 export async function checkApiStatus(): Promise<boolean> {
@@ -54,14 +53,13 @@ export async function getFormats(url: string): Promise<FormatResponse> {
   }
 }
 
-export async function downloadVideo({ url, format, output_dir, websocket_id }: VideoRequest): Promise<Response> {
-  console.log('🔄 [API] Making download request with websocket_id:', websocket_id);
+export async function downloadVideo({ url, format, output_dir }: VideoRequest): Promise<Response> {
   const response = await fetch(`${API_ENDPOINTS.download}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ url, format, output_dir, websocket_id }),
+    body: JSON.stringify({ url, format, output_dir }),
   });
 
   if (!response.ok) {
