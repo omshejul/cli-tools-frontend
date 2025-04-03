@@ -74,7 +74,7 @@ const DownloadLog = forwardRef<DownloadLogRef, { className?: string }>(
             }`}
           >
             <span className="text-muted-foreground">[{log.timestamp}] </span>
-            {log.message}fff
+            {log.message}
           </div>
         ))}
       </div>

@@ -2,11 +2,20 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Toaster, toast } from "sonner";
-import { Download, Link, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import {
+  Download,
+  Link,
+  AlertCircle,
+  Video,
+  Music,
+  Info,
+  Loader2,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "../components/ui/switch";
 import {
   Card,
   CardContent,
@@ -21,6 +30,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -40,7 +50,10 @@ import {
   FormatResponse,
   checkApiStatus,
   getFormats,
+  getVideoInfo,
   downloadVideo,
+  DownloadProgress,
+  VideoInfo,
 } from "@/lib/api";
 import { DownloadLog, DownloadLogRef } from "@/components/download-log";
 
@@ -48,6 +61,7 @@ const formSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
   format: z.string(),
   output_dir: z.string(),
+  optimize_for_quicktime: z.boolean(),
 });
 
 type FormSchema = z.infer<typeof formSchema>;
@@ -108,7 +122,22 @@ export default function Home() {
   const [videoTitle, setVideoTitle] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
+  const [downloadProgress, setDownloadProgress] =
+    useState<DownloadProgress | null>(null);
+  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+  const [selectedFormatSize, setSelectedFormatSize] = useState<number | null>(
+    null
+  );
   const logRef = useRef<DownloadLogRef>(null);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const placeholders = [
+    "https://youtube.com/watch?v=...",
+    "https://vimeo.com/...",
+    "https://instagram.com/p/...",
+    "https://facebook.com/watch/...",
+    "https://tiktok.com/@user/video/...",
+    "https://twitter.com/user/status/...",
+  ];
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -116,6 +145,7 @@ export default function Home() {
       url: "",
       format: "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]",
       output_dir: "./downloads",
+      optimize_for_quicktime: false,
     },
   });
 
@@ -133,6 +163,14 @@ export default function Home() {
     checkApi();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((current) => (current + 1) % placeholders.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const onSubmit = async (values: FormSchema) => {
     if (!isApiAvailable) {
       toast.error("API server is not available");
@@ -141,53 +179,53 @@ export default function Home() {
 
     try {
       setLoading(true);
+      setDownloadProgress(null);
+      setVideoInfo(null);
 
       // Clear previous logs
       if (logRef.current) {
         logRef.current.clear();
       }
 
+      // Get video info first
+      const info = await getVideoInfo(values);
+      setVideoInfo(info);
+
       // Start the download process
-      toast.success("Starting download process...");
+      toast.success("Processing media...");
 
-      const response = await downloadVideo({
-        ...values,
-      });
-
-      // Check if response is ok
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Get filename from Content-Disposition header
-      const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = "download";
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(
-          /filename\*=UTF-8''(.+)/i
-        );
-        if (filenameMatch && filenameMatch[1]) {
-          filename = decodeURIComponent(filenameMatch[1]);
+      const blob = await downloadVideo(
+        values,
+        info,
+        (progress: DownloadProgress) => {
+          setDownloadProgress(progress);
+          if (logRef.current) {
+            logRef.current.addLog(
+              "info",
+              `Downloading: ${progress.percentage.toFixed(1)}% (${formatBytes(
+                progress.loaded
+              )} / ${info.filesize_formatted})`
+            );
+          }
         }
-      }
+      );
 
-      // Get the blob from the streaming response
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      // Create a URL for the blob
+      const url = URL.createObjectURL(blob);
 
       // Create a temporary link and trigger download
       const a = document.createElement("a");
       a.style.display = "none";
       a.href = url;
-      a.download = filename;
+      a.download = info.filename;
       document.body.appendChild(a);
       a.click();
 
       // Cleanup
-      window.URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success("File saved successfully!");
+      toast.success(`Successfully downloaded: ${info.filename}`);
     } catch (error) {
       console.error("Download failed:", error);
       toast.error(
@@ -195,7 +233,18 @@ export default function Home() {
       );
     } finally {
       setLoading(false);
+      setDownloadProgress(null);
+      setVideoInfo(null);
     }
+  };
+
+  // Helper function to format bytes
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
   };
 
   const fetchFormats = async (url: string) => {
@@ -250,10 +299,10 @@ export default function Home() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Download className="w-6 h-6" />
-              YouTube Downloader
+              Media Downloader
             </CardTitle>
             <CardDescription>
-              Download videos from YouTube using yt-dlp
+              Download videos from YouTube, Instagram, and more.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -269,22 +318,25 @@ export default function Home() {
                     <FormItem>
                       <FormLabel>Video URL</FormLabel>
                       <FormControl>
-                        <div className="flex gap-2">
+                        <div className="relative">
                           <Input
-                            placeholder="https://youtube.com/..."
                             {...field}
+                            className="relative bg-transparent"
                           />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => fetchFormats(field.value)}
-                            disabled={
-                              loading || !field.value || !isApiAvailable
-                            }
-                          >
-                            <Link className="w-4 h-4 mr-2" />
-                            Get Formats
-                          </Button>
+                          <div className="absolute inset-0 pointer-events-none">
+                            <AnimatePresence mode="wait">
+                              <motion.span
+                                key={placeholderIndex}
+                                initial={{ y: 10, opacity: 0 }}
+                                animate={{ y: 0, opacity: 0.5 }}
+                                exit={{ y: -10, opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="block px-3 py-2 text-muted-foreground"
+                              >
+                                {!field.value && placeholders[placeholderIndex]}
+                              </motion.span>
+                            </AnimatePresence>
+                          </div>
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -292,86 +344,217 @@ export default function Home() {
                   )}
                 />
 
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fetchFormats(form.getValues("url"))}
+                  disabled={
+                    loading || !form.getValues("url") || !isApiAvailable
+                  }
+                  className="w-full"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Fetching Formats...
+                    </>
+                  ) : (
+                    <>
+                      <Link className="w-4 h-4 mr-2" />
+                      Get Formats
+                    </>
+                  )}
+                </Button>
+
                 {videoTitle && (
                   <div className="text-sm font-medium text-muted-foreground">
                     Video Title: {videoTitle}
                   </div>
                 )}
 
-                <FormField
-                  control={form.control}
-                  name="format"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Format</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a format" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]">
-                            Best Quality (MP4)
-                          </SelectItem>
-
-                          {videoFormats.length > 0 && (
-                            <>
-                              <SelectItem value="separator-video" disabled>
-                                Video Formats
+                {formats.length > 0 && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="format"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Format</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-full w-full">
+                                <SelectValue placeholder="Select a format" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]">
+                                <div className="flex items-center justify-between w-full">
+                                  <span>Best Quality (MP4)</span>
+                                  <span className="ml-1 rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                    Recommended
+                                  </span>
+                                </div>
                               </SelectItem>
-                              {videoFormats.map((format) => (
-                                <SelectItem
-                                  key={format.format_id}
-                                  value={format.format_id}
+
+                              {videoFormats.length > 0 && (
+                                <>
+                                  <SelectItem value="separator-video" disabled>
+                                    <span className="flex items-center">
+                                      <Video className="w-4 h-4 mr-2" />
+                                      Video Formats
+                                    </span>
+                                  </SelectItem>
+                                  {videoFormats.map((format) => (
+                                    <SelectItem
+                                      key={format.format_id}
+                                      value={format.format_id}
+                                      className="py-3"
+                                    >
+                                      <div className="flex flex-col gap-1.5 min-h-[2.5rem]">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <span className="font-medium text-sm sm:text-base">
+                                            {format.resolution} ({format.ext})
+                                          </span>
+                                          <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                            {format.filesize_mb}
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
+                                          <span>
+                                            Bitrate: {format.total_bitrate}
+                                          </span>
+                                          {format.fps && (
+                                            <span>{format.fps}fps</span>
+                                          )}
+                                          {format.dynamic_range && (
+                                            <span>{format.dynamic_range}</span>
+                                          )}
+                                        </div>
+                                        {format.filesize_mb == "N/A" && (
+                                          <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
+                                            {format.description}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </>
+                              )}
+
+                              {audioFormats.length > 0 && (
+                                <>
+                                  <SelectItem value="separator-audio" disabled>
+                                    <span className="flex items-center">
+                                      <Music className="w-4 h-4 mr-2" />
+                                      Audio Formats
+                                    </span>
+                                  </SelectItem>
+                                  {audioFormats.map((format) => (
+                                    <SelectItem
+                                      key={format.format_id}
+                                      value={format.format_id}
+                                      className="py-3"
+                                    >
+                                      <div className="flex flex-col gap-1.5 min-h-[2.5rem]">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <span className="font-medium text-sm sm:text-base">
+                                            {format.format_note} ({format.ext})
+                                          </span>
+                                          <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                            {format.filesize_mb}
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
+                                          <span>
+                                            Bitrate: {format.audio_bitrate}
+                                          </span>
+                                          <span>{format.acodec}</span>
+                                        </div>
+                                        {format.filesize_mb == "N/A" && (
+                                          <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
+                                            {format.description}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="optimize_for_quicktime"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              <span className="flex items-center gap-2 pr-3">
+                                Optimize for  QuickTime (Slower)
+                                <button
+                                  type="button"
+                                  className="sm:hidden text-muted-foreground hover:text-foreground"
+                                  onClick={() => {
+                                    toast.info(
+                                      "Converts video to H.264/AAC format for better compatibility with QuickTime Player"
+                                    );
+                                  }}
                                 >
-                                  {format.resolution} ({format.ext}) -{" "}
-                                  {formatFileSize(format.filesize)}
-                                </SelectItem>
-                              ))}
-                            </>
-                          )}
+                                  <Info className="h-4 w-4" />
+                                </button>
+                              </span>
+                            </FormLabel>
+                            <FormDescription className="hidden sm:block">
+                              Convert video to H.264/AAC format for better
+                              compatibility with QuickTime Player
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
 
-                          {audioFormats.length > 0 && (
-                            <>
-                              <SelectItem value="separator-audio" disabled>
-                                Audio Only
-                              </SelectItem>
-                              {audioFormats.map((format) => (
-                                <SelectItem
-                                  key={format.format_id}
-                                  value={format.format_id}
-                                >
-                                  {format.format_note} ({format.ext}) -{" "}
-                                  {formatFileSize(format.filesize)}
-                                </SelectItem>
-                              ))}
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    {downloadProgress && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>Downloading video...</span>
+                          <span>
+                            {Math.round(downloadProgress.percentage)}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={downloadProgress.percentage}
+                          className="w-full"
+                        />
+                        <div className="text-xs text-muted-foreground">
+                          {formatBytes(downloadProgress.loaded)}
+                          {videoInfo && ` / ${videoInfo.filesize_formatted}`}
+                        </div>
+                      </div>
+                    )}
 
-                <div className="mt-4 border rounded-md">
-                  <div className="bg-muted px-4 py-2 text-sm font-medium">
-                    Download Logs
-                  </div>
-                  <DownloadLog ref={logRef} className="h-[200px]" />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={loading || !isApiAvailable}
-                  className="w-full"
-                >
-                  {loading ? "Processing..." : "Download"}
-                </Button>
+                    <Button
+                      type="submit"
+                      disabled={loading || !isApiAvailable}
+                      className="w-full"
+                    >
+                      {loading ? "Processing..." : "Download"}
+                    </Button>
+                  </>
+                )}
               </form>
             </Form>
           </CardContent>
