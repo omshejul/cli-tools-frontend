@@ -307,7 +307,7 @@ export default function Home() {
                                 animate={{ y: 0, opacity: 0.5 }}
                                 exit={{ y: -10, opacity: 0 }}
                                 transition={{ duration: 0.3 }}
-                                className="block px-3 py-2 text-muted-foreground"
+                                className="text-sm block px-3 py-2 text-muted-foreground"
                               >
                                 {!field.value && placeholders[placeholderIndex]}
                               </motion.span>
