@@ -10,8 +10,10 @@ import {
   Music,
   Info,
   Loader2,
+  Share2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Cookies from "js-cookie";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,10 +52,10 @@ import {
   checkApiStatus,
   getFormats,
   getVideoInfo,
-  downloadVideo,
   DownloadProgress,
   VideoInfo,
 } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/config";
 import { DownloadLogRef } from "@/components/download-log";
 
 const formSchema = z.object({
@@ -91,19 +93,24 @@ function organizeFormats(formats: Format[]) {
   return { videoFormats, audioFormats };
 }
 
-
-
-
-
-
 export default function Home() {
   const [formats, setFormats] = useState<Format[]>([]);
   const [videoTitle, setVideoTitle] = useState<string>("");
-  const [loading, setLoading] = useState(false);
+  const [isLoadingFormats, setIsLoadingFormats] = useState(false);
+  const [isLoadingInfo, setIsLoadingInfo] = useState(false);
+  const [isGeneratingDownload, setIsGeneratingDownload] = useState(false);
   const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
   const [downloadProgress, setDownloadProgress] =
     useState<DownloadProgress | null>(null);
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+  const [downloadLink, setDownloadLink] = useState<{
+    url: string;
+    filename: string;
+    size_mb: number;
+    expires_in_minutes: number;
+    created_at: number;
+  } | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>("");
   const logRef = useRef<DownloadLogRef>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const placeholders = [
@@ -114,6 +121,127 @@ export default function Home() {
     "https://tiktok.com/@user/video/...",
     "https://twitter.com/user/status/...",
   ];
+
+  const [loadingStep, setLoadingStep] = useState<{
+    message: string;
+    substep?: string;
+  } | null>(null);
+
+  // Loading steps sequence
+  const loadingSteps = [
+    {
+      message: "Receiving Request",
+      substeps: ["Processing HTTP request", "Validating parameters"],
+    },
+    {
+      message: "Setting Up Environment",
+      substeps: [
+        "Initializing logging",
+        "Setting up encoders",
+        "Checking versions",
+      ],
+    },
+    {
+      message: "Validating URL",
+      substeps: [
+        "Verifying URL format",
+        "Loading necessary cookies",
+        "Checking extraction mode",
+      ],
+    },
+    {
+      message: "Extracting Metadata",
+      substeps: [
+        "Downloading webpage",
+        "Loading client config",
+        "Processing player API",
+      ],
+    },
+    {
+      message: "Processing Signatures",
+      substeps: [
+        "Extracting signature functions",
+        "Decrypting nsig values",
+        "Caching stream URLs",
+      ],
+    },
+    {
+      message: "Selecting Formats",
+      substeps: [
+        "Analyzing available formats",
+        "Checking compatibility",
+        "Selecting best match",
+      ],
+    },
+    {
+      message: "Preparing Download",
+      substeps: [
+        "Setting up streams",
+        "Initializing temporary storage",
+        "Configuring download",
+      ],
+    },
+  ];
+
+  const simulateLoading = async (totalSizeMB: number) => {
+    // Base time ranges for different types of steps (in milliseconds)
+    const baseTimings = {
+      "Receiving Request": { min: 800, max: 1500 },
+      "Setting Up Environment": { min: 1500, max: 2500 },
+      "Validating URL": { min: 4000, max: 5000 },
+      "Extracting Metadata": { min: 2000, max: 3500 },
+      "Processing Signatures": { min: 6000, max: 8000 },
+      "Selecting Formats": { min: 1500, max: 2500 },
+      "Preparing Download": { min: 1000, max: 2000 },
+    };
+
+    // Scale factor based on file size (increases by 40% for every 100MB)
+    const scaleFactor = 1 + (totalSizeMB / 100) * 0.4;
+
+    // Helper function to get random time between min and max
+    const getRandomTime = (min: number, max: number) =>
+      Math.floor(Math.random() * (max - min + 1) + min);
+
+    // Helper function to scale timing based on file size
+    const getScaledTiming = (timing: { min: number; max: number }) => ({
+      min: timing.min * scaleFactor,
+      max: timing.max * scaleFactor,
+    });
+
+    for (const step of loadingSteps) {
+      setLoadingStep({ message: step.message });
+
+      // Get base timing range for this step and scale it
+      const baseTiming = baseTimings[step.message as keyof typeof baseTimings];
+      const scaledTiming = getScaledTiming(baseTiming);
+
+      // Calculate step time with scaled values
+      const stepTime = getRandomTime(scaledTiming.min, scaledTiming.max);
+
+      // Special handling for certain steps that are more affected by file size
+      const sizeAffectedSteps = [
+        "Processing Signatures",
+        "Extracting Metadata",
+        "Preparing Download",
+      ];
+
+      const timePerSubstep = sizeAffectedSteps.includes(step.message)
+        ? (stepTime * (1 + totalSizeMB / 200)) / step.substeps.length // More scaling for size-affected steps
+        : stepTime / step.substeps.length;
+
+      // Show substeps with varying times
+      for (const substep of step.substeps) {
+        setLoadingStep({ message: step.message, substep });
+        // Vary each substep time by ±50%
+        const variance = timePerSubstep * 0.5;
+        const substepTime = getRandomTime(
+          timePerSubstep - variance,
+          timePerSubstep + variance
+        );
+        await new Promise((resolve) => setTimeout(resolve, substepTime));
+      }
+    }
+  };
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -147,6 +275,81 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [placeholders.length]);
 
+  // Load download link from cookie on mount
+  useEffect(() => {
+    const savedDownloadLink = Cookies.get("downloadLink");
+    if (savedDownloadLink) {
+      try {
+        const parsedLink = JSON.parse(savedDownloadLink);
+        // Only restore if the link hasn't expired
+        const expiryTime =
+          parsedLink.created_at + parsedLink.expires_in_minutes * 60 * 1000;
+        if (Date.now() < expiryTime) {
+          setDownloadLink(parsedLink);
+        } else {
+          // Clean up expired cookie
+          Cookies.remove("downloadLink");
+        }
+      } catch (error) {
+        console.error("Failed to parse saved download link:", error);
+        Cookies.remove("downloadLink");
+      }
+    }
+  }, []);
+
+  // Update cookie when download link changes
+  useEffect(() => {
+    if (downloadLink) {
+      Cookies.set("downloadLink", JSON.stringify(downloadLink), {
+        expires: downloadLink.expires_in_minutes / (24 * 60), // Convert minutes to days for cookie expiry
+      });
+    } else {
+      Cookies.remove("downloadLink");
+    }
+  }, [downloadLink]);
+
+  // Add countdown timer effect
+  useEffect(() => {
+    if (!downloadLink?.created_at) return;
+
+    const updateTimeLeft = () => {
+      const now = Date.now();
+      const expiryTime =
+        downloadLink.created_at + downloadLink.expires_in_minutes * 60 * 1000;
+      const diff = expiryTime - now;
+
+      if (diff <= 0) {
+        setTimeLeft("Expired");
+        setDownloadLink(null);
+        Cookies.remove("downloadLink"); // Clean up cookie when link expires
+        return;
+      }
+
+      // Calculate hours, minutes, and seconds
+      const totalMinutes = Math.floor(diff / (1000 * 60));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      // Format the time string
+      if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes}m`);
+      } else if (minutes > 0) {
+        setTimeLeft(`${minutes}m ${seconds}s`);
+      } else {
+        setTimeLeft(`${seconds}s`);
+      }
+    };
+
+    // Update immediately
+    updateTimeLeft();
+
+    // Update every second
+    const interval = setInterval(updateTimeLeft, 1000);
+
+    return () => clearInterval(interval);
+  }, [downloadLink?.created_at, downloadLink?.expires_in_minutes]);
+
   const onSubmit = async (values: FormSchema) => {
     if (!isApiAvailable) {
       toast.error("API server is not available");
@@ -154,9 +357,10 @@ export default function Home() {
     }
 
     try {
-      setLoading(true);
+      setIsLoadingInfo(true);
       setDownloadProgress(null);
       setVideoInfo(null);
+      setDownloadLink(null);
 
       // Clear previous logs
       if (logRef.current) {
@@ -168,49 +372,64 @@ export default function Home() {
       setVideoInfo(info);
 
       // Start the download process
-      toast.success("Processing media...");
+      setIsGeneratingDownload(true);
 
-      const blob = await downloadVideo(
-        values,
-        info,
-        (progress: DownloadProgress) => {
-          setDownloadProgress(progress);
-          if (logRef.current) {
-            logRef.current.addLog(
-              "info",
-              `Downloading: ${progress.percentage.toFixed(1)}% (${formatBytes(
-                progress.loaded
-              )} / ${info.filesize_formatted})`
-            );
-          }
+      // Calculate total size for loading simulation
+      let sizeMB = 0;
+      if (
+        values.format === "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]"
+      ) {
+        // If best quality, find the largest video file
+        const largestVideo = formats[0];
+        if (largestVideo) {
+          sizeMB = parseFloat(largestVideo.filesize_mb) || 100; // Default to 100MB if size unknown
         }
-      );
+      } else {
+        // Find the selected format
+        const selectedFormat = [...formats].find(
+          (f) => f.format_id === values.format
+        );
+        if (selectedFormat) {
+          sizeMB = parseFloat(selectedFormat.filesize_mb) || 50; // Default to 50MB if size unknown
+        }
+      }
+      // setTotalSizeMB(sizeMB);
 
-      // Create a URL for the blob
-      const url = URL.createObjectURL(blob);
+      // Simulate loading steps
+      await simulateLoading(sizeMB);
 
-      // Create a temporary link and trigger download
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
-      a.download = info.filename;
-      document.body.appendChild(a);
-      a.click();
+      const response = await fetch(API_ENDPOINTS.download, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
 
-      // Cleanup
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to generate download link");
+      }
 
-      toast.success(`Successfully downloaded: ${info.filename}`);
+      const downloadData = await response.json();
+      // Construct the download URL using the token
+      const downloadUrl = `${API_ENDPOINTS.download}/${downloadData.token}`;
+
+      setDownloadLink({
+        ...downloadData,
+        url: downloadUrl,
+        created_at: Date.now(),
+      });
+      toast.success("Download link generated!");
     } catch (error) {
-      console.error("Download failed:", error);
+      console.error("Download error:", error);
       toast.error(
-        error instanceof Error ? error.message : "An unexpected error occurred"
+        error instanceof Error ? error.message : "Failed to process media"
       );
     } finally {
-      setLoading(false);
-      setDownloadProgress(null);
-      setVideoInfo(null);
+      setIsLoadingInfo(false);
+      setIsGeneratingDownload(false);
+      setLoadingStep(null);
     }
   };
 
@@ -230,7 +449,7 @@ export default function Home() {
     }
 
     try {
-      setLoading(true);
+      setIsLoadingFormats(true);
       const response = await getFormats(url);
       setFormats(response.formats);
       setVideoTitle(response.title);
@@ -240,7 +459,7 @@ export default function Home() {
         error instanceof Error ? error.message : "An unexpected error occurred"
       );
     } finally {
-      setLoading(false);
+      setIsLoadingFormats(false);
     }
   };
 
@@ -325,11 +544,13 @@ export default function Home() {
                   variant="outline"
                   onClick={() => fetchFormats(form.getValues("url"))}
                   disabled={
-                    loading || !form.getValues("url") || !isApiAvailable
+                    isLoadingFormats ||
+                    !form.getValues("url") ||
+                    !isApiAvailable
                   }
                   className="w-full"
                 >
-                  {loading ? (
+                  {isLoadingFormats ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Fetching Formats...
@@ -474,7 +695,7 @@ export default function Home() {
                           <div className="space-y-0.5">
                             <FormLabel className="text-base">
                               <span className="flex items-center gap-2 pr-3">
-                                Optimize for  QuickTime (Slower)
+                                Optimize for QuickTime (Slower)
                                 <button
                                   type="button"
                                   className="sm:hidden text-muted-foreground hover:text-foreground"
@@ -522,19 +743,163 @@ export default function Home() {
                       </div>
                     )}
 
-                    <Button
-                      type="submit"
-                      disabled={loading || !isApiAvailable}
-                      className="w-full"
-                    >
-                      {loading ? "Processing..." : "Download"}
-                    </Button>
+                    {isLoadingInfo || isGeneratingDownload ? (
+                      <div className="w-full border rounded-lg p-4 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <div className="flex flex-col items-start overflow-hidden min-h-[3.5rem] justify-center">
+                            <AnimatePresence mode="wait">
+                              <motion.span
+                                key={loadingStep?.message}
+                                initial={{ y: 10, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: -10, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="text-sm font-medium"
+                              >
+                                {loadingStep?.message || "Preparing..."}
+                              </motion.span>
+                            </AnimatePresence>
+                            {loadingStep?.substep && (
+                              <AnimatePresence mode="wait">
+                                <motion.span
+                                  key={loadingStep.substep}
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="text-xs text-muted-foreground whitespace-nowrap"
+                                >
+                                  {loadingStep.substep}
+                                </motion.span>
+                              </AnimatePresence>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Progress indicator */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden"
+                        >
+                          <motion.div
+                            className="absolute inset-y-0 left-0 bg-primary"
+                            initial={{ width: "0%" }}
+                            animate={{
+                              width: loadingStep
+                                ? `${
+                                    ((loadingSteps.findIndex(
+                                      (s) => s.message === loadingStep.message
+                                    ) +
+                                      1) /
+                                      loadingSteps.length) *
+                                    100
+                                  }%`
+                                : "0%",
+                            }}
+                            transition={{
+                              duration: 0.1,
+                              ease: "linear",
+                            }}
+                          />
+                        </motion.div>
+                      </div>
+                    ) : (
+                      <Button
+                        type="submit"
+                        disabled={!isApiAvailable}
+                        className="w-full"
+                      >
+                        Download
+                      </Button>
+                    )}
                   </>
                 )}
               </form>
             </Form>
           </CardContent>
         </Card>
+
+        {downloadLink && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Download Ready</CardTitle>
+                <CardDescription>
+                  Your download link is ready. Click below to start downloading.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="font-medium">{downloadLink.filename}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Size: {downloadLink.size_mb.toFixed(2)} MB
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(downloadLink.url);
+                          toast.success("Download link copied to clipboard!");
+                        } catch (err) {
+                          toast.error("Failed to copy link: " + err);
+                        }
+                      }}
+                      className="min-w-[120px]"
+                    >
+                      <motion.span
+                        className="flex items-center gap-2"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Share2 className="h-4 w-4" />
+                        Share
+                      </motion.span>
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const a = document.createElement("a");
+                        a.href = downloadLink.url;
+                        a.download = downloadLink.filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      }}
+                      className="min-w-[120px]"
+                    >
+                      <motion.span
+                        className="flex items-center gap-2"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </motion.span>
+                    </Button>
+                  </div>
+                </div>
+                <motion.p
+                  className="text-sm text-muted-foreground"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Link expires in {timeLeft}
+                </motion.p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );

@@ -39,6 +39,13 @@ export interface VideoMetadata {
   filesize_formatted: string;
 }
 
+export interface DownloadLinkResponse {
+  token: string;
+  filename: string;
+  size_mb: number;
+  expires_in_minutes: number;
+}
+
 export interface DownloadProgress {
   percentage: number;
   loaded: number;
