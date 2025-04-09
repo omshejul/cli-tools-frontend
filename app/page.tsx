@@ -10,10 +10,22 @@ import {
   Music,
   Info,
   Loader2,
-  Share2,
+  Check,
+  Copy,
+  Terminal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Cookies from "js-cookie";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,12 +63,19 @@ import {
   Format,
   checkApiStatus,
   getFormats,
-  getVideoInfo,
   DownloadProgress,
   VideoInfo,
 } from "@/lib/api";
-import { API_ENDPOINTS } from "@/lib/config";
+import { API_BASE_URL, API_ENDPOINTS } from "@/lib/config";
 import { DownloadLogRef } from "@/components/download-log";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const formSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -103,6 +122,7 @@ export default function Home() {
   const [downloadProgress, setDownloadProgress] =
     useState<DownloadProgress | null>(null);
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+
   const [downloadLink, setDownloadLink] = useState<{
     url: string;
     filename: string;
@@ -113,6 +133,11 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const logRef = useRef<DownloadLogRef>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isShared, setIsShared] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isMacCopied, setIsMacCopied] = useState(false);
+  const [isLinuxCopied, setIsLinuxCopied] = useState(false);
+  const [isWinCopied, setIsWinCopied] = useState(false);
   const placeholders = [
     "https://youtube.com/watch?v=...",
     "https://vimeo.com/...",
@@ -125,123 +150,8 @@ export default function Home() {
   const [loadingStep, setLoadingStep] = useState<{
     message: string;
     substep?: string;
+    progress: number;
   } | null>(null);
-
-  // Loading steps sequence
-  const loadingSteps = [
-    {
-      message: "Receiving Request",
-      substeps: ["Processing HTTP request", "Validating parameters"],
-    },
-    {
-      message: "Setting Up Environment",
-      substeps: [
-        "Initializing logging",
-        "Setting up encoders",
-        "Checking versions",
-      ],
-    },
-    {
-      message: "Validating URL",
-      substeps: [
-        "Verifying URL format",
-        "Loading necessary cookies",
-        "Checking extraction mode",
-      ],
-    },
-    {
-      message: "Extracting Metadata",
-      substeps: [
-        "Downloading webpage",
-        "Loading client config",
-        "Processing player API",
-      ],
-    },
-    {
-      message: "Processing Signatures",
-      substeps: [
-        "Extracting signature functions",
-        "Decrypting nsig values",
-        "Caching stream URLs",
-      ],
-    },
-    {
-      message: "Selecting Formats",
-      substeps: [
-        "Analyzing available formats",
-        "Checking compatibility",
-        "Selecting best match",
-      ],
-    },
-    {
-      message: "Preparing Download",
-      substeps: [
-        "Setting up streams",
-        "Initializing temporary storage",
-        "Configuring download",
-      ],
-    },
-  ];
-
-  const simulateLoading = async (totalSizeMB: number) => {
-    // Base time ranges for different types of steps (in milliseconds)
-    const baseTimings = {
-      "Receiving Request": { min: 800, max: 1500 },
-      "Setting Up Environment": { min: 1500, max: 2500 },
-      "Validating URL": { min: 4000, max: 5000 },
-      "Extracting Metadata": { min: 2000, max: 3500 },
-      "Processing Signatures": { min: 6000, max: 8000 },
-      "Selecting Formats": { min: 1500, max: 2500 },
-      "Preparing Download": { min: 1000, max: 2000 },
-    };
-
-    // Scale factor based on file size (increases by 40% for every 100MB)
-    const scaleFactor = 1 + (totalSizeMB / 100) * 0.4;
-
-    // Helper function to get random time between min and max
-    const getRandomTime = (min: number, max: number) =>
-      Math.floor(Math.random() * (max - min + 1) + min);
-
-    // Helper function to scale timing based on file size
-    const getScaledTiming = (timing: { min: number; max: number }) => ({
-      min: timing.min * scaleFactor,
-      max: timing.max * scaleFactor,
-    });
-
-    for (const step of loadingSteps) {
-      setLoadingStep({ message: step.message });
-
-      // Get base timing range for this step and scale it
-      const baseTiming = baseTimings[step.message as keyof typeof baseTimings];
-      const scaledTiming = getScaledTiming(baseTiming);
-
-      // Calculate step time with scaled values
-      const stepTime = getRandomTime(scaledTiming.min, scaledTiming.max);
-
-      // Special handling for certain steps that are more affected by file size
-      const sizeAffectedSteps = [
-        "Processing Signatures",
-        "Extracting Metadata",
-        "Preparing Download",
-      ];
-
-      const timePerSubstep = sizeAffectedSteps.includes(step.message)
-        ? (stepTime * (1 + totalSizeMB / 200)) / step.substeps.length // More scaling for size-affected steps
-        : stepTime / step.substeps.length;
-
-      // Show substeps with varying times
-      for (const substep of step.substeps) {
-        setLoadingStep({ message: step.message, substep });
-        // Vary each substep time by ±50%
-        const variance = timePerSubstep * 0.5;
-        const substepTime = getRandomTime(
-          timePerSubstep - variance,
-          timePerSubstep + variance
-        );
-        await new Promise((resolve) => setTimeout(resolve, substepTime));
-      }
-    }
-  };
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -260,7 +170,7 @@ export default function Home() {
       setIsApiAvailable(isAvailable);
       if (!isAvailable) {
         toast.error(
-          "Unable to connect to the API server. Please make sure it's running."
+          "Unable to connect to the API server. Please make sure it&apos;s running."
         );
       }
     };
@@ -367,38 +277,11 @@ export default function Home() {
         logRef.current.clear();
       }
 
-      // Get video info first
-      const info = await getVideoInfo(values);
-      setVideoInfo(info);
-
-      // Start the download process
+      // Start the download process immediately
       setIsGeneratingDownload(true);
 
-      // Calculate total size for loading simulation
-      let sizeMB = 0;
-      if (
-        values.format === "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]"
-      ) {
-        // If best quality, find the largest video file
-        const largestVideo = formats[0];
-        if (largestVideo) {
-          sizeMB = parseFloat(largestVideo.filesize_mb) || 100; // Default to 100MB if size unknown
-        }
-      } else {
-        // Find the selected format
-        const selectedFormat = [...formats].find(
-          (f) => f.format_id === values.format
-        );
-        if (selectedFormat) {
-          sizeMB = parseFloat(selectedFormat.filesize_mb) || 50; // Default to 50MB if size unknown
-        }
-      }
-      // setTotalSizeMB(sizeMB);
-
-      // Simulate loading steps
-      await simulateLoading(sizeMB);
-
-      const response = await fetch(API_ENDPOINTS.download, {
+      // Send the download request
+      const downloadResponse = await fetch(API_ENDPOINTS.download, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -406,13 +289,12 @@ export default function Home() {
         body: JSON.stringify(values),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (!downloadResponse.ok) {
+        const error = await downloadResponse.json();
         throw new Error(error.detail || "Failed to generate download link");
       }
 
-      const downloadData = await response.json();
-      // Construct the download URL using the token
+      const downloadData = await downloadResponse.json();
       const downloadUrl = `${API_ENDPOINTS.download}/${downloadData.token}`;
 
       setDownloadLink({
@@ -420,13 +302,18 @@ export default function Home() {
         url: downloadUrl,
         created_at: Date.now(),
       });
+
+      // Clear loading states
+      setLoadingStep(null);
+      setIsLoadingInfo(false);
+      setIsGeneratingDownload(false);
+
       toast.success("Download link generated!");
     } catch (error) {
       console.error("Download error:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to process media"
       );
-    } finally {
       setIsLoadingInfo(false);
       setIsGeneratingDownload(false);
       setLoadingStep(null);
@@ -466,13 +353,14 @@ export default function Home() {
   const { videoFormats, audioFormats } = organizeFormats(formats);
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="p-8">
       <Toaster position="bottom-right" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="max-w-2xl mx-auto space-y-8"
+        aria-hidden={false}
       >
         {!isApiAvailable && (
           <div className="flex items-center gap-2 p-4 text-sm text-yellow-800 bg-yellow-50 rounded-lg">
@@ -481,7 +369,7 @@ export default function Home() {
               <p>API server is not accessible. This might be due to:</p>
               <ul className="list-disc list-inside pl-2">
                 <li>CORS not being enabled on the backend</li>
-                <li>The server not running at http://localhost:8000</li>
+                <li>The server not running at {API_BASE_URL}</li>
               </ul>
               <p className="text-xs mt-2">
                 Check the browser console for more details.
@@ -694,8 +582,8 @@ export default function Home() {
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base">
-                              <span className="flex items-center gap-2 pr-3">
-                                Optimize for QuickTime (Slower)
+                              <span className="flex flex-wrap items-center gap-2 pr-3">
+                                Optimize for Apple QuickTime (112x Slower)
                                 <button
                                   type="button"
                                   className="sm:hidden text-muted-foreground hover:text-foreground"
@@ -707,6 +595,305 @@ export default function Home() {
                                 >
                                   <Info className="h-4 w-4" />
                                 </button>
+                                <Drawer>
+                                  <DrawerTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="text-xs text-muted-foreground hover:text-foreground border rounded-md px-2 py-1 flex items-center gap-1"
+                                    >
+                                      <Terminal className="h-3 w-3" />
+                                      Convert manually
+                                    </button>
+                                  </DrawerTrigger>
+                                  <DrawerContent>
+                                    <div
+                                      className="max-w-2xl mx-auto px-4"
+                                      tabIndex={-1}
+                                    >
+                                      <DrawerHeader>
+                                        <DrawerTitle>
+                                          Manual Conversion with FFmpeg
+                                        </DrawerTitle>
+                                        <DrawerDescription>
+                                          Use this command to convert your video
+                                          for QuickTime compatibility
+                                        </DrawerDescription>
+                                      </DrawerHeader>
+                                      <div className="p-4">
+                                        <div className="font-mono text-sm bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden">
+                                          <div
+                                            className="p-4 overflow-x-auto border-b border-slate-200 dark:border-slate-800"
+                                            tabIndex={0}
+                                            role="textbox"
+                                            aria-label="FFmpeg command"
+                                          >
+                                            {`ffmpeg -i "path/to/file/${
+                                              downloadLink?.filename ||
+                                              "video.mp4"
+                                            }" -c:v libx264 -c:a aac -b:a 192k -movflags +faststart -pix_fmt yuv420p "path/to/file/${
+                                              downloadLink?.filename?.replace(
+                                                /\.[^/.]+$/,
+                                                ""
+                                              ) || "video"
+                                            }-quicktime.mp4"`}
+                                          </div>
+                                          <div className="p-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-8"
+                                              onClick={() => {
+                                                const filename =
+                                                  downloadLink?.filename ||
+                                                  "input.mp4";
+                                                const outputName =
+                                                  filename.replace(
+                                                    /\.[^/.]+$/,
+                                                    ""
+                                                  ) + "-quicktime.mp4";
+                                                const command = `ffmpeg -i "path/to/file/${filename}" -c:v libx264 -c:a aac -b:a 192k -movflags +faststart -pix_fmt yuv420p "path/to/file/${outputName}"`;
+                                                navigator.clipboard.writeText(
+                                                  command
+                                                );
+                                                setIsCopied(true);
+                                                setTimeout(
+                                                  () => setIsCopied(false),
+                                                  2000
+                                                );
+                                                toast.success(
+                                                  "Command copied!"
+                                                );
+                                              }}
+                                              aria-label={
+                                                isCopied
+                                                  ? "Command copied"
+                                                  : "Copy command"
+                                              }
+                                            >
+                                              {isCopied ? (
+                                                <Check className="h-4 w-4 mr-2" />
+                                              ) : (
+                                                <Copy className="h-4 w-4 mr-2" />
+                                              )}
+                                              {isCopied
+                                                ? "Copied!"
+                                                : "Copy command"}
+                                            </Button>
+                                            <Dialog>
+                                              <DialogTrigger asChild>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-8"
+                                                >
+                                                  <Download className="h-4 w-4 mr-2" />
+                                                  FFmpeg not installed?
+                                                </Button>
+                                              </DialogTrigger>
+                                              <DialogContent className="sm:max-w-[425px]">
+                                                <DialogHeader>
+                                                  <DialogTitle>
+                                                    Install FFmpeg
+                                                  </DialogTitle>
+                                                  <DialogDescription>
+                                                    Follow the instructions
+                                                    below to install FFmpeg on
+                                                    your system.
+                                                  </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="space-y-4">
+                                                  <div>
+                                                    <h4 className="font-medium mb-2">
+                                                      macOS
+                                                    </h4>
+                                                    <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
+                                                      <code>
+                                                        brew install ffmpeg
+                                                      </code>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 px-2"
+                                                        onClick={() => {
+                                                          navigator.clipboard.writeText(
+                                                            "brew install ffmpeg"
+                                                          );
+                                                          setIsMacCopied(true);
+                                                          setTimeout(
+                                                            () =>
+                                                              setIsMacCopied(
+                                                                false
+                                                              ),
+                                                            2000
+                                                          );
+                                                          toast.success(
+                                                            "Command copied!"
+                                                          );
+                                                        }}
+                                                      >
+                                                        {isMacCopied ? (
+                                                          <Check className="h-3 w-3" />
+                                                        ) : (
+                                                          <Copy className="h-3 w-3" />
+                                                        )}
+                                                      </Button>
+                                                    </div>
+                                                  </div>
+                                                  <div>
+                                                    <h4 className="font-medium mb-2">
+                                                      Windows
+                                                    </h4>
+                                                    <div className="space-y-3">
+                                                      <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
+                                                        <code>
+                                                          winget install ffmpeg
+                                                        </code>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="h-6 px-2"
+                                                          onClick={() => {
+                                                            navigator.clipboard.writeText(
+                                                              "winget install ffmpeg"
+                                                            );
+                                                            setIsWinCopied(
+                                                              true
+                                                            );
+                                                            setTimeout(
+                                                              () =>
+                                                                setIsWinCopied(
+                                                                  false
+                                                                ),
+                                                              2000
+                                                            );
+                                                            toast.success(
+                                                              "Command copied!"
+                                                            );
+                                                          }}
+                                                        >
+                                                          {isWinCopied ? (
+                                                            <Check className="h-3 w-3" />
+                                                          ) : (
+                                                            <Copy className="h-3 w-3" />
+                                                          )}
+                                                        </Button>
+                                                      </div>
+                                                      <p className="text-sm text-muted-foreground">
+                                                        Or manually:
+                                                      </p>
+                                                      <ol className="list-decimal list-inside space-y-2 text-sm">
+                                                        <li>
+                                                          Download the latest
+                                                          build from{" "}
+                                                          <a
+                                                            href="https://github.com/BtbN/FFmpeg-Builds/releases"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-primary underline hover:underline-offset-4 hover:underline"
+                                                          >
+                                                            FFmpeg Builds
+                                                          </a>
+                                                        </li>
+                                                        <li>
+                                                          Extract the ZIP file
+                                                        </li>
+                                                        <li>
+                                                          Add the bin folder to
+                                                          your system&apos;s
+                                                          PATH
+                                                        </li>
+                                                      </ol>
+                                                    </div>
+                                                  </div>
+                                                  <div>
+                                                    <h4 className="font-medium mb-2">
+                                                      Linux (Ubuntu/Debian)
+                                                    </h4>
+                                                    <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
+                                                      <code>
+                                                        sudo apt install ffmpeg
+                                                      </code>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 px-2"
+                                                        onClick={() => {
+                                                          navigator.clipboard.writeText(
+                                                            "sudo apt install ffmpeg"
+                                                          );
+                                                          setIsLinuxCopied(
+                                                            true
+                                                          );
+                                                          setTimeout(
+                                                            () =>
+                                                              setIsLinuxCopied(
+                                                                false
+                                                              ),
+                                                            2000
+                                                          );
+                                                          toast.success(
+                                                            "Command copied!"
+                                                          );
+                                                        }}
+                                                      >
+                                                        {isLinuxCopied ? (
+                                                          <Check className="h-3 w-3" />
+                                                        ) : (
+                                                          <Copy className="h-3 w-3" />
+                                                        )}
+                                                      </Button>
+                                                    </div>
+                                                  </div>
+                                                  <div className="text-sm text-muted-foreground mt-4">
+                                                    For more information, visit
+                                                    the{" "}
+                                                    <a
+                                                      href="https://ffmpeg.org/download.html"
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-primary hover:underline"
+                                                    >
+                                                      official FFmpeg website
+                                                    </a>
+                                                    .
+                                                  </div>
+                                                </div>
+                                              </DialogContent>
+                                            </Dialog>
+                                          </div>
+                                        </div>
+                                        <p className="mt-4 text-sm text-muted-foreground">
+                                          This command:
+                                        </p>
+                                        <ul className="mt-2 list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                                          <li>
+                                            Converts video to H.264 codec
+                                            (QuickTime compatible)
+                                          </li>
+                                          <li>
+                                            Converts audio to AAC format at
+                                            192kbps
+                                          </li>
+                                          <li>
+                                            Enables fast start for instant
+                                            playback
+                                          </li>
+                                          <li>
+                                            Uses compatible color format
+                                            (yuv420p)
+                                          </li>
+                                        </ul>
+                                      </div>
+                                      <DrawerFooter>
+                                        <DrawerClose asChild>
+                                          <Button variant="outline">
+                                            Close
+                                          </Button>
+                                        </DrawerClose>
+                                      </DrawerFooter>
+                                    </div>
+                                  </DrawerContent>
+                                </Drawer>
                               </span>
                             </FormLabel>
                             <FormDescription className="hidden sm:block">
@@ -751,9 +938,9 @@ export default function Home() {
                             <AnimatePresence mode="wait">
                               <motion.span
                                 key={loadingStep?.message}
-                                initial={{ y: 10, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: -10, opacity: 0 }}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.2 }}
                                 className="text-sm font-medium"
                               >
@@ -789,14 +976,7 @@ export default function Home() {
                             initial={{ width: "0%" }}
                             animate={{
                               width: loadingStep
-                                ? `${
-                                    ((loadingSteps.findIndex(
-                                      (s) => s.message === loadingStep.message
-                                    ) +
-                                      1) /
-                                      loadingSteps.length) *
-                                    100
-                                  }%`
+                                ? `${loadingStep.progress}%`
                                 : "0%",
                             }}
                             transition={{
@@ -850,6 +1030,8 @@ export default function Home() {
                       onClick={async () => {
                         try {
                           await navigator.clipboard.writeText(downloadLink.url);
+                          setIsShared(true);
+                          setTimeout(() => setIsShared(false), 2000);
                           toast.success("Download link copied to clipboard!");
                         } catch (err) {
                           toast.error("Failed to copy link: " + err);
@@ -862,8 +1044,12 @@ export default function Home() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        <Share2 className="h-4 w-4" />
-                        Share
+                        {isShared ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                        {isShared ? "Copied!" : "Copy Link"}
                       </motion.span>
                     </Button>
                     <Button
