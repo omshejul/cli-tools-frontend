@@ -29,7 +29,7 @@ export function Footer() {
   return (
     <footer className="border-t flex justify-center">
       <div className="container max-w-5xl flex flex-col items-center gap-4 py-10 min-md:h-18 p-8 md:flex-row md:py-0">
-        <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+        <div className="flex flex-col items-center px-8 md:flex-row md:gap-2 md:px-0">
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
             Built by Om Shejul
           </p>
@@ -38,7 +38,7 @@ export function Footer() {
             © {currentYear} All rights reserved.
           </p>
         </div>
-        <div className="flex flex-1 items-center justify-end space-x-2">
+        <div className="flex flex-1 flex-wrap items-center justify-center sm:justify-end space-x-2">
           <a
             href="https://github.com/omshejul/cli-tools-frontend"
             target="_blank"
@@ -47,7 +47,7 @@ export function Footer() {
           >
             <span className="flex items-center gap-2 py-2">
               <FiGithub className="h-4 w-4" />
-              <span className="text-xs">Source Code</span>
+              <span className="text-xs whitespace-nowrap">Source Code</span>
             </span>
           </a>
 
@@ -57,7 +57,7 @@ export function Footer() {
           >
             <span className="flex items-center gap-2 py-2">
               <FiMail className="h-4 w-4" />
-              <span className="text-xs">Email me</span>
+              <span className="text-xs whitespace-nowrap">Email me</span>
             </span>
           </a>
 

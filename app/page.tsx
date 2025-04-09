@@ -170,7 +170,7 @@ export default function Home() {
       setIsApiAvailable(isAvailable);
       if (!isAvailable) {
         toast.error(
-          "Unable to connect to the API server. Please make sure it&apos;s running."
+          "Unable to connect to the API server. Please make sure it is running."
         );
       }
     };
