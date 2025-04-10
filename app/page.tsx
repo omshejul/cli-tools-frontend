@@ -279,6 +279,33 @@ export default function Home() {
 
       // Start the download process immediately
       setIsGeneratingDownload(true);
+      setLoadingStep({
+        message: "Fetching video information",
+        progress: 25,
+      });
+
+      // Get video info first
+      const videoInfoResponse = await fetch(API_ENDPOINTS.info, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
+
+      if (!videoInfoResponse.ok) {
+        const error = await videoInfoResponse.json();
+        throw new Error(error.detail || "Failed to get video info");
+      }
+
+      const videoInfo = await videoInfoResponse.json();
+      setVideoInfo(videoInfo);
+
+      setLoadingStep({
+        message: "Processing video",
+        substep: "Downloading video on server",
+        progress: 50,
+      });
 
       // Send the download request
       const downloadResponse = await fetch(API_ENDPOINTS.download, {
@@ -294,8 +321,19 @@ export default function Home() {
         throw new Error(error.detail || "Failed to generate download link");
       }
 
+      setLoadingStep({
+        message: "Generating download link",
+        substep: "Almost there...",
+        progress: 90,
+      });
+
       const downloadData = await downloadResponse.json();
       const downloadUrl = `${API_ENDPOINTS.download}/${downloadData.token}`;
+
+      setLoadingStep({
+        message: "Download ready",
+        progress: 100,
+      });
 
       setDownloadLink({
         ...downloadData,
@@ -414,7 +452,7 @@ export default function Home() {
                                 animate={{ y: 0, opacity: 0.5 }}
                                 exit={{ y: -10, opacity: 0 }}
                                 transition={{ duration: 0.3 }}
-                                className="text-sm block pt-3 px-3 py-2 text-muted-foreground"
+                                className="text-sm block pt-3 px-4 py-2 text-muted-foreground"
                               >
                                 {!field.value && placeholders[placeholderIndex]}
                               </motion.span>
