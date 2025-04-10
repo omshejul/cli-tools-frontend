@@ -9,11 +9,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
+import packageInfo from "@/package.json";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const version = packageInfo.version;
 
   useEffect(() => {
     setMounted(true);
@@ -31,6 +33,8 @@ export function Footer() {
       <div className="container max-w-5xl flex flex-col items-center gap-2 py-6 min-md:h-18 p-3 sm:p-8 md:flex-row md:py-0">
         <div className="flex flex-col items-center px-8 md:flex-row md:gap-2 md:px-0">
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+            v{version}
+            <span className="text-muted-foreground px-2">•</span>
             Built by Om Shejul
           </p>
           <span className="text-muted-foreground hidden md:inline">•</span>
