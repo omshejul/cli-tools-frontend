@@ -35,7 +35,7 @@ export function Footer() {
           </p>
           <span className="text-muted-foreground hidden md:inline">•</span>
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            © {currentYear} All rights reserved.
+            © {currentYear} Open Source.
           </p>
         </div>
         <div className="flex flex-1 flex-wrap items-center justify-center sm:justify-end space-x-2">
