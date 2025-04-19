@@ -388,6 +388,15 @@ export default function Home() {
     }
   };
 
+  const isLikelyUrl = (text: string): boolean => {
+    // Checks for domain-like patterns
+    const urlPattern =
+      /^(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)/i;
+    return (
+      urlPattern.test(text) && !text.endsWith(".mp4") && !text.endsWith(".mp3")
+    );
+  };
+
   const { videoFormats, audioFormats } = organizeFormats(formats);
 
   return (
@@ -450,7 +459,8 @@ export default function Home() {
                                 if (
                                   url &&
                                   !isLoadingFormats &&
-                                  isApiAvailable
+                                  isApiAvailable &&
+                                  isLikelyUrl(url)
                                 ) {
                                   fetchFormats(url);
                                 }
@@ -463,7 +473,8 @@ export default function Home() {
                                 if (
                                   url &&
                                   !isLoadingFormats &&
-                                  isApiAvailable
+                                  isApiAvailable &&
+                                  isLikelyUrl(url)
                                 ) {
                                   fetchFormats(url);
                                 }
