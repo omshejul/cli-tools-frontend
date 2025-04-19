@@ -456,7 +456,7 @@ export default function Home() {
                                 }
                               }
                             }}
-                            onPaste={(e) => {
+                            onPaste={() => {
                               // Allow the default paste behavior to complete
                               setTimeout(() => {
                                 const url = form.getValues("url");
