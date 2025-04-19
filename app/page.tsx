@@ -443,6 +443,32 @@ export default function Home() {
                           <Input
                             {...field}
                             className="relative bg-transparent"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                const url = form.getValues("url");
+                                if (
+                                  url &&
+                                  !isLoadingFormats &&
+                                  isApiAvailable
+                                ) {
+                                  fetchFormats(url);
+                                }
+                              }
+                            }}
+                            onPaste={(e) => {
+                              // Allow the default paste behavior to complete
+                              setTimeout(() => {
+                                const url = form.getValues("url");
+                                if (
+                                  url &&
+                                  !isLoadingFormats &&
+                                  isApiAvailable
+                                ) {
+                                  fetchFormats(url);
+                                }
+                              }, 100);
+                            }}
                           />
                           <div className="absolute inset-0 pointer-events-none">
                             <AnimatePresence mode="wait">
