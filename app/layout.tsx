@@ -3,6 +3,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Footer } from "@/components/footer";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 export const metadata: Metadata = {
   title: "Media Downloader",
   description: "Download videos and audio from various platforms",
@@ -26,6 +28,7 @@ export default function RootLayout({
           <Footer />
         </ThemeProvider>
       </body>
+      <SpeedInsights />
       <Analytics />
     </html>
   );
