@@ -547,7 +547,87 @@ export default function Home() {
                           >
                             <FormControl>
                               <SelectTrigger className="h-full w-full">
-                                <SelectValue placeholder="Select a format" />
+                                <SelectValue placeholder="Select a format">
+                                  {field.value ===
+                                  "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]" ? (
+                                    <div className="flex items-center justify-between w-full">
+                                      <span>Best Quality (MP4)</span>
+                                      <span className="ml-1 rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                        Recommended
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    (() => {
+                                      const selectedFormat = [
+                                        ...videoFormats,
+                                        ...audioFormats,
+                                      ].find(
+                                        (f) => f.format_id === field.value
+                                      );
+                                      if (selectedFormat) {
+                                        return (
+                                          <div className="flex flex-col gap-1.5 min-h-[2.5rem]">
+                                            <div className="flex items-center justify-between gap-1">
+                                              <span className="font-medium text-sm sm:text-base">
+                                                {selectedFormat.vcodec !==
+                                                "none"
+                                                  ? `${selectedFormat.resolution} (${selectedFormat.ext})`
+                                                  : `${selectedFormat.format_note} (${selectedFormat.ext})`}
+                                              </span>
+                                              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                                {selectedFormat.filesize_mb}
+                                              </span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
+                                              {selectedFormat.vcodec !==
+                                              "none" ? (
+                                                <>
+                                                  <span>
+                                                    Bitrate:{" "}
+                                                    {
+                                                      selectedFormat.total_bitrate
+                                                    }
+                                                  </span>
+                                                  {selectedFormat.fps && (
+                                                    <span>
+                                                      {selectedFormat.fps}fps
+                                                    </span>
+                                                  )}
+                                                  {selectedFormat.dynamic_range && (
+                                                    <span>
+                                                      {
+                                                        selectedFormat.dynamic_range
+                                                      }
+                                                    </span>
+                                                  )}
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <span>
+                                                    Bitrate:{" "}
+                                                    {
+                                                      selectedFormat.audio_bitrate
+                                                    }
+                                                  </span>
+                                                  <span>
+                                                    {selectedFormat.acodec}
+                                                  </span>
+                                                </>
+                                              )}
+                                            </div>
+                                            {selectedFormat.filesize_mb ===
+                                              "N/A" && (
+                                              <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
+                                                {selectedFormat.description}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                      return "Select a format";
+                                    })()
+                                  )}
+                                </SelectValue>
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
