@@ -54,6 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -559,14 +560,27 @@ export default function Home() {
                                 </div>
                               </SelectItem>
 
-                              {videoFormats.length > 0 && (
-                                <>
-                                  <SelectItem value="separator-video" disabled>
-                                    <span className="flex items-center">
-                                      <Video className="w-4 h-4 mr-2" />
-                                      Video Formats
-                                    </span>
-                                  </SelectItem>
+                              <Tabs
+                                defaultValue="video"
+                                className="w-full mt-2"
+                              >
+                                <TabsList className="grid w-full grid-cols-2">
+                                  <TabsTrigger
+                                    value="video"
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Video className="w-4 h-4" />
+                                    Video
+                                  </TabsTrigger>
+                                  <TabsTrigger
+                                    value="audio"
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Music className="w-4 h-4" />
+                                    Audio
+                                  </TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="video" className="mt-2">
                                   {videoFormats.map((format) => (
                                     <SelectItem
                                       key={format.format_id}
@@ -601,17 +615,8 @@ export default function Home() {
                                       </div>
                                     </SelectItem>
                                   ))}
-                                </>
-                              )}
-
-                              {audioFormats.length > 0 && (
-                                <>
-                                  <SelectItem value="separator-audio" disabled>
-                                    <span className="flex items-center">
-                                      <Music className="w-4 h-4 mr-2" />
-                                      Audio Formats
-                                    </span>
-                                  </SelectItem>
+                                </TabsContent>
+                                <TabsContent value="audio" className="mt-2">
                                   {audioFormats.map((format) => (
                                     <SelectItem
                                       key={format.format_id}
@@ -641,8 +646,8 @@ export default function Home() {
                                       </div>
                                     </SelectItem>
                                   ))}
-                                </>
-                              )}
+                                </TabsContent>
+                              </Tabs>
                             </SelectContent>
                           </Select>
                           <FormMessage />
