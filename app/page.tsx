@@ -425,749 +425,868 @@ export default function Home() {
             </div>
           </div>
         )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Download className="w-6 h-6" />
-              Media Downloader
-            </CardTitle>
-            <CardDescription>
-              Download videos from YouTube, Instagram, and more.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
-                <FormField
-                  control={form.control}
-                  name="url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Video URL</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            className="relative bg-transparent"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                const url = form.getValues("url");
-                                if (
-                                  url &&
-                                  !isLoadingFormats &&
-                                  isApiAvailable &&
-                                  isLikelyUrl(url)
-                                ) {
-                                  fetchFormats(url);
-                                }
-                              }
-                            }}
-                            onPaste={() => {
-                              // Allow the default paste behavior to complete
-                              setTimeout(() => {
-                                const url = form.getValues("url");
-                                if (
-                                  url &&
-                                  !isLoadingFormats &&
-                                  isApiAvailable &&
-                                  isLikelyUrl(url)
-                                ) {
-                                  fetchFormats(url);
-                                }
-                              }, 100);
-                            }}
-                          />
-                          <div className="absolute inset-0 pointer-events-none">
-                            <AnimatePresence mode="wait">
-                              <motion.span
-                                key={placeholderIndex}
-                                initial={{ y: 10, opacity: 0 }}
-                                animate={{ y: 0, opacity: 0.5 }}
-                                exit={{ y: -10, opacity: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="text-sm block pt-3 px-4 py-2 text-muted-foreground"
-                              >
-                                {!field.value && placeholders[placeholderIndex]}
-                              </motion.span>
-                            </AnimatePresence>
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fetchFormats(form.getValues("url"))}
-                  disabled={
-                    isLoadingFormats ||
-                    !form.getValues("url") ||
-                    !isApiAvailable
-                  }
-                  className="w-full"
+        <motion.div
+          initial={{ opacity: 0, y: 10, filter: "blur(30px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ delay: 0.15 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="w-6 h-6" />
+                Media Downloader
+              </CardTitle>
+              <CardDescription>
+                Download videos from YouTube, Instagram, and more.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
                 >
-                  {isLoadingFormats ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Fetching Formats...
-                    </>
-                  ) : (
-                    <>
-                      <Link className="w-4 h-4 mr-2" />
-                      Get Formats
-                    </>
+                  <FormField
+                    control={form.control}
+                    name="url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Video URL</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              className="relative bg-transparent"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  const url = form.getValues("url");
+                                  if (
+                                    url &&
+                                    !isLoadingFormats &&
+                                    isApiAvailable &&
+                                    isLikelyUrl(url)
+                                  ) {
+                                    fetchFormats(url);
+                                  }
+                                }
+                              }}
+                              onPaste={() => {
+                                // Allow the default paste behavior to complete
+                                setTimeout(() => {
+                                  const url = form.getValues("url");
+                                  if (
+                                    url &&
+                                    !isLoadingFormats &&
+                                    isApiAvailable &&
+                                    isLikelyUrl(url)
+                                  ) {
+                                    fetchFormats(url);
+                                  }
+                                }, 100);
+                              }}
+                            />
+                            <div className="absolute inset-0 pointer-events-none">
+                              <AnimatePresence mode="wait">
+                                <motion.span
+                                  key={placeholderIndex}
+                                  initial={{ y: 10, opacity: 0 }}
+                                  animate={{ y: 0, opacity: 0.5 }}
+                                  exit={{ y: -10, opacity: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="text-sm block pt-3 px-4 py-2 text-muted-foreground"
+                                >
+                                  {!field.value &&
+                                    placeholders[placeholderIndex]}
+                                </motion.span>
+                              </AnimatePresence>
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fetchFormats(form.getValues("url"))}
+                    disabled={
+                      isLoadingFormats ||
+                      !form.getValues("url") ||
+                      !isApiAvailable
+                    }
+                    className="w-full"
+                  >
+                    {isLoadingFormats ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Fetching Formats...
+                      </>
+                    ) : (
+                      <>
+                        <Link className="w-4 h-4 mr-2" />
+                        Get Formats
+                      </>
+                    )}
+                  </Button>
+
+                  {videoTitle && (
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Video Title: {videoTitle}
+                    </div>
                   )}
-                </Button>
 
-                {videoTitle && (
-                  <div className="text-sm font-medium text-muted-foreground">
-                    Video Title: {videoTitle}
-                  </div>
-                )}
-
-                {formats.length > 0 && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="format"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Format</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="h-full w-full">
-                                <SelectValue placeholder="Select a format">
-                                  {field.value ===
-                                  "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]" ? (
-                                    <div className="flex items-center justify-between w-full">
+                  {formats.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ delay: 0.3 }} 
+                      className="mt-4"
+                    >
+                      
+                        <FormField
+                          control={form.control}
+                          name="format"
+                          render={({ field }) => (
+                            <FormItem className="mb-4">
+                              <FormLabel>Format</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-full w-full">
+                                    <SelectValue placeholder="Select a format">
+                                      <AnimatePresence mode="wait">
+                                        <motion.div
+                                          key={field.value}
+                                          initial={{
+                                            opacity: 0,
+                                            filter: "blur(6px)",
+                                          }}
+                                          animate={{
+                                            opacity: 1,
+                                            filter: "blur(0px)",
+                                          }}
+                                          exit={{
+                                            opacity: 0,
+                                            filter: "blur(6px)",
+                                          }}
+                                          transition={{ duration: 0.2 }}
+                                          className="w-full"
+                                        >
+                                          {field.value ===
+                                          "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]" ? (
+                                            <div className="flex items-center justify-between w-full">
+                                              <span>Best Quality (MP4)</span>
+                                              <span className="ml-1 rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                                Recommended
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            (() => {
+                                              const selectedFormat = [
+                                                ...videoFormats,
+                                                ...audioFormats,
+                                              ].find(
+                                                (f) =>
+                                                  f.format_id === field.value
+                                              );
+                                              if (selectedFormat) {
+                                                return (
+                                                  <div className="flex flex-col gap-1.5 min-h-[2.5rem]">
+                                                    <div className="flex items-center justify-between gap-1">
+                                                      <span className="font-medium text-sm sm:text-base">
+                                                        {selectedFormat.vcodec !==
+                                                        "none"
+                                                          ? `${selectedFormat.resolution} (${selectedFormat.ext})`
+                                                          : `${selectedFormat.format_note} (${selectedFormat.ext})`}
+                                                      </span>
+                                                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                                        {
+                                                          selectedFormat.filesize_mb
+                                                        }
+                                                      </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
+                                                      {selectedFormat.vcodec !==
+                                                      "none" ? (
+                                                        <>
+                                                          <span>
+                                                            Bitrate:{" "}
+                                                            {
+                                                              selectedFormat.total_bitrate
+                                                            }
+                                                          </span>
+                                                          {selectedFormat.fps && (
+                                                            <span>
+                                                              {
+                                                                selectedFormat.fps
+                                                              }
+                                                              fps
+                                                            </span>
+                                                          )}
+                                                          {selectedFormat.dynamic_range && (
+                                                            <span>
+                                                              {
+                                                                selectedFormat.dynamic_range
+                                                              }
+                                                            </span>
+                                                          )}
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <span>
+                                                            Bitrate:{" "}
+                                                            {
+                                                              selectedFormat.audio_bitrate
+                                                            }
+                                                          </span>
+                                                          <span>
+                                                            {
+                                                              selectedFormat.acodec
+                                                            }
+                                                          </span>
+                                                        </>
+                                                      )}
+                                                    </div>
+                                                    {selectedFormat.filesize_mb ===
+                                                      "N/A" && (
+                                                      <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
+                                                        {
+                                                          selectedFormat.description
+                                                        }
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                );
+                                              }
+                                              return "Select a format";
+                                            })()
+                                          )}
+                                        </motion.div>
+                                      </AnimatePresence>
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]">
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ duration: 0.2 }}
+                                      className="flex items-center justify-between w-full"
+                                    >
                                       <span>Best Quality (MP4)</span>
                                       <span className="ml-1 rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
                                         Recommended
                                       </span>
-                                    </div>
-                                  ) : (
-                                    (() => {
-                                      const selectedFormat = [
-                                        ...videoFormats,
-                                        ...audioFormats,
-                                      ].find(
-                                        (f) => f.format_id === field.value
-                                      );
-                                      if (selectedFormat) {
-                                        return (
-                                          <div className="flex flex-col gap-1.5 min-h-[2.5rem]">
-                                            <div className="flex items-center justify-between gap-1">
-                                              <span className="font-medium text-sm sm:text-base">
-                                                {selectedFormat.vcodec !==
-                                                "none"
-                                                  ? `${selectedFormat.resolution} (${selectedFormat.ext})`
-                                                  : `${selectedFormat.format_note} (${selectedFormat.ext})`}
-                                              </span>
-                                              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
-                                                {selectedFormat.filesize_mb}
-                                              </span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
-                                              {selectedFormat.vcodec !==
-                                              "none" ? (
-                                                <>
+                                    </motion.div>
+                                  </SelectItem>
+
+                                  <Tabs
+                                    defaultValue="video"
+                                    className="w-full mt-2"
+                                  >
+                                    <TabsList className="grid w-full grid-cols-2">
+                                      <TabsTrigger
+                                        value="video"
+                                        className="flex items-center gap-2"
+                                      >
+                                        <motion.div
+                                          whileHover={{ scale: 1.05 }}
+                                          whileTap={{ scale: 0.95 }}
+                                          className="flex items-center gap-2"
+                                        >
+                                          <Video className="w-4 h-4" />
+                                          Video
+                                        </motion.div>
+                                      </TabsTrigger>
+                                      <TabsTrigger
+                                        value="audio"
+                                        className="flex items-center gap-2"
+                                      >
+                                        <motion.div
+                                          whileHover={{ scale: 1.05 }}
+                                          whileTap={{ scale: 0.95 }}
+                                          className="flex items-center gap-2"
+                                        >
+                                          <Music className="w-4 h-4" />
+                                          Audio
+                                        </motion.div>
+                                      </TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="video" className="mt-2">
+                                      <AnimatePresence mode="wait">
+                                        <motion.div
+                                          initial={{ opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          exit={{ opacity: 0, y: -10 }}
+                                          transition={{ duration: 0.2 }}
+                                        >
+                                          {videoFormats.map((format, index) => (
+                                            <SelectItem
+                                              key={format.format_id}
+                                              value={format.format_id}
+                                              className="py-3"
+                                            >
+                                              <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{
+                                                  duration: 0.2,
+                                                  delay: index * 0.05,
+                                                }}
+                                                className="flex flex-col gap-1.5 min-h-[2.5rem]"
+                                              >
+                                                <div className="flex items-center justify-between gap-1">
+                                                  <span className="font-medium text-sm sm:text-base">
+                                                    {format.resolution} (
+                                                    {format.ext})
+                                                  </span>
+                                                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                                    {format.filesize_mb}
+                                                  </span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
                                                   <span>
                                                     Bitrate:{" "}
-                                                    {
-                                                      selectedFormat.total_bitrate
-                                                    }
+                                                    {format.total_bitrate}
                                                   </span>
-                                                  {selectedFormat.fps && (
+                                                  {format.fps && (
+                                                    <span>{format.fps}fps</span>
+                                                  )}
+                                                  {format.dynamic_range && (
                                                     <span>
-                                                      {selectedFormat.fps}fps
+                                                      {format.dynamic_range}
                                                     </span>
                                                   )}
-                                                  {selectedFormat.dynamic_range && (
-                                                    <span>
-                                                      {
-                                                        selectedFormat.dynamic_range
-                                                      }
-                                                    </span>
-                                                  )}
-                                                </>
-                                              ) : (
-                                                <>
+                                                </div>
+                                                {format.filesize_mb ==
+                                                  "N/A" && (
+                                                  <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
+                                                    {format.description}
+                                                  </div>
+                                                )}
+                                              </motion.div>
+                                            </SelectItem>
+                                          ))}
+                                        </motion.div>
+                                      </AnimatePresence>
+                                    </TabsContent>
+                                    <TabsContent value="audio" className="mt-2">
+                                      <AnimatePresence mode="wait">
+                                        <motion.div
+                                          initial={{ opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          exit={{ opacity: 0, y: -10 }}
+                                          transition={{ duration: 0.2 }}
+                                        >
+                                          {audioFormats.map((format, index) => (
+                                            <SelectItem
+                                              key={format.format_id}
+                                              value={format.format_id}
+                                              className="py-3"
+                                            >
+                                              <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{
+                                                  duration: 0.2,
+                                                  delay: index * 0.05,
+                                                }}
+                                                className="flex flex-col gap-1.5 min-h-[2.5rem]"
+                                              >
+                                                <div className="flex items-center justify-between gap-1">
+                                                  <span className="font-medium text-sm sm:text-base">
+                                                    {format.format_note} (
+                                                    {format.ext})
+                                                  </span>
+                                                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
+                                                    {format.filesize_mb}
+                                                  </span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
                                                   <span>
                                                     Bitrate:{" "}
-                                                    {
-                                                      selectedFormat.audio_bitrate
-                                                    }
+                                                    {format.audio_bitrate}
                                                   </span>
-                                                  <span>
-                                                    {selectedFormat.acodec}
-                                                  </span>
-                                                </>
-                                              )}
-                                            </div>
-                                            {selectedFormat.filesize_mb ===
-                                              "N/A" && (
-                                              <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
-                                                {selectedFormat.description}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      }
-                                      return "Select a format";
-                                    })()
-                                  )}
-                                </SelectValue>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]">
-                                <div className="flex items-center justify-between w-full">
-                                  <span>Best Quality (MP4)</span>
-                                  <span className="ml-1 rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
-                                    Recommended
-                                  </span>
-                                </div>
-                              </SelectItem>
+                                                  <span>{format.acodec}</span>
+                                                </div>
+                                                {format.filesize_mb ==
+                                                  "N/A" && (
+                                                  <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
+                                                    {format.description}
+                                                  </div>
+                                                )}
+                                              </motion.div>
+                                            </SelectItem>
+                                          ))}
+                                        </motion.div>
+                                      </AnimatePresence>
+                                    </TabsContent>
+                                  </Tabs>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                              <Tabs
-                                defaultValue="video"
-                                className="w-full mt-2"
-                              >
-                                <TabsList className="grid w-full grid-cols-2">
-                                  <TabsTrigger
-                                    value="video"
-                                    className="flex items-center gap-2"
-                                  >
-                                    <Video className="w-4 h-4" />
-                                    Video
-                                  </TabsTrigger>
-                                  <TabsTrigger
-                                    value="audio"
-                                    className="flex items-center gap-2"
-                                  >
-                                    <Music className="w-4 h-4" />
-                                    Audio
-                                  </TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="video" className="mt-2">
-                                  {videoFormats.map((format) => (
-                                    <SelectItem
-                                      key={format.format_id}
-                                      value={format.format_id}
-                                      className="py-3"
-                                    >
-                                      <div className="flex flex-col gap-1.5 min-h-[2.5rem]">
-                                        <div className="flex items-center justify-between gap-1">
-                                          <span className="font-medium text-sm sm:text-base">
-                                            {format.resolution} ({format.ext})
-                                          </span>
-                                          <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
-                                            {format.filesize_mb}
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
-                                          <span>
-                                            Bitrate: {format.total_bitrate}
-                                          </span>
-                                          {format.fps && (
-                                            <span>{format.fps}fps</span>
-                                          )}
-                                          {format.dynamic_range && (
-                                            <span>{format.dynamic_range}</span>
-                                          )}
-                                        </div>
-                                        {format.filesize_mb == "N/A" && (
-                                          <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
-                                            {format.description}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </TabsContent>
-                                <TabsContent value="audio" className="mt-2">
-                                  {audioFormats.map((format) => (
-                                    <SelectItem
-                                      key={format.format_id}
-                                      value={format.format_id}
-                                      className="py-3"
-                                    >
-                                      <div className="flex flex-col gap-1.5 min-h-[2.5rem]">
-                                        <div className="flex items-center justify-between gap-1">
-                                          <span className="font-medium text-sm sm:text-base">
-                                            {format.format_note} ({format.ext})
-                                          </span>
-                                          <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.65rem] sm:text-xs font-medium text-muted-foreground shrink-0">
-                                            {format.filesize_mb}
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.65rem] sm:text-xs text-muted-foreground">
-                                          <span>
-                                            Bitrate: {format.audio_bitrate}
-                                          </span>
-                                          <span>{format.acodec}</span>
-                                        </div>
-                                        {format.filesize_mb == "N/A" && (
-                                          <div className="text-[0.65rem] sm:text-xs text-muted-foreground">
-                                            {format.description}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </TabsContent>
-                              </Tabs>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="optimize_for_quicktime"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">
-                              <span className="flex flex-wrap items-center gap-2 pr-3">
-                                Optimize for Apple QuickTime (112x Slower)
-                                <button
-                                  type="button"
-                                  className="sm:hidden text-muted-foreground hover:text-foreground"
-                                  onClick={() => {
-                                    toast.info(
-                                      "Converts video to H.264/AAC format for better compatibility with QuickTime Player"
-                                    );
-                                  }}
-                                >
-                                  <Info className="h-4 w-4" />
-                                </button>
-                                <Drawer>
-                                  <DrawerTrigger asChild>
+                        <FormField
+                          control={form.control}
+                          name="optimize_for_quicktime"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mb-4">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">
+                                  <span className="flex flex-wrap items-center gap-2 pr-3">
+                                    Optimize for Apple QuickTime (112x Slower)
                                     <button
                                       type="button"
-                                      className="text-xs text-muted-foreground hover:text-foreground border rounded-md px-2 py-1 flex items-center gap-1"
+                                      className="sm:hidden text-muted-foreground hover:text-foreground"
+                                      onClick={() => {
+                                        toast.info(
+                                          "Converts video to H.264/AAC format for better compatibility with QuickTime Player"
+                                        );
+                                      }}
                                     >
-                                      <Terminal className="h-3 w-3" />
-                                      Convert manually
+                                      <Info className="h-4 w-4" />
                                     </button>
-                                  </DrawerTrigger>
-                                  <DrawerContent>
-                                    <div
-                                      className="max-w-2xl mx-auto px-4"
-                                      tabIndex={-1}
-                                    >
-                                      <DrawerHeader>
-                                        <DrawerTitle>
-                                          Manual Conversion with FFmpeg
-                                        </DrawerTitle>
-                                        <DrawerDescription>
-                                          Use this command to convert your video
-                                          for QuickTime compatibility
-                                        </DrawerDescription>
-                                      </DrawerHeader>
-                                      <div className="p-4">
-                                        <div className="font-mono text-sm bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden">
-                                          <div
-                                            className="p-4 overflow-x-auto border-b border-slate-200 dark:border-slate-800"
-                                            tabIndex={0}
-                                            role="textbox"
-                                            aria-label="FFmpeg command"
-                                          >
-                                            {`ffmpeg -i "path/to/file/${
-                                              downloadLink?.filename ||
-                                              "video.mp4"
-                                            }" -c:v libx264 -c:a aac -b:a 192k -movflags +faststart -pix_fmt yuv420p "path/to/file/${
-                                              downloadLink?.filename?.replace(
-                                                /\.[^/.]+$/,
-                                                ""
-                                              ) || "video"
-                                            }-quicktime.mp4"`}
-                                          </div>
-                                          <div className="p-2">
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-8"
-                                              onClick={() => {
-                                                const filename =
+                                    <Drawer>
+                                      <DrawerTrigger asChild>
+                                        <button
+                                          type="button"
+                                          className="text-xs text-muted-foreground hover:text-foreground border rounded-md px-2 py-1 flex items-center gap-1"
+                                        >
+                                          <Terminal className="h-3 w-3" />
+                                          Convert manually
+                                        </button>
+                                      </DrawerTrigger>
+                                      <DrawerContent>
+                                        <div
+                                          className="max-w-2xl mx-auto px-4"
+                                          tabIndex={-1}
+                                        >
+                                          <DrawerHeader>
+                                            <DrawerTitle>
+                                              Manual Conversion with FFmpeg
+                                            </DrawerTitle>
+                                            <DrawerDescription>
+                                              Use this command to convert your
+                                              video for QuickTime compatibility
+                                            </DrawerDescription>
+                                          </DrawerHeader>
+                                          <div className="p-4">
+                                            <div className="font-mono text-sm bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden">
+                                              <div
+                                                className="p-4 overflow-x-auto border-b border-slate-200 dark:border-slate-800"
+                                                tabIndex={0}
+                                                role="textbox"
+                                                aria-label="FFmpeg command"
+                                              >
+                                                {`ffmpeg -i "path/to/file/${
                                                   downloadLink?.filename ||
-                                                  "input.mp4";
-                                                const outputName =
-                                                  filename.replace(
+                                                  "video.mp4"
+                                                }" -c:v libx264 -c:a aac -b:a 192k -movflags +faststart -pix_fmt yuv420p "path/to/file/${
+                                                  downloadLink?.filename?.replace(
                                                     /\.[^/.]+$/,
                                                     ""
-                                                  ) + "-quicktime.mp4";
-                                                const command = `ffmpeg -i "path/to/file/${filename}" -c:v libx264 -c:a aac -b:a 192k -movflags +faststart -pix_fmt yuv420p "path/to/file/${outputName}"`;
-                                                navigator.clipboard.writeText(
-                                                  command
-                                                );
-                                                setIsCopied(true);
-                                                setTimeout(
-                                                  () => setIsCopied(false),
-                                                  2000
-                                                );
-                                                toast.success(
-                                                  "Command copied!"
-                                                );
-                                              }}
-                                              aria-label={
-                                                isCopied
-                                                  ? "Command copied"
-                                                  : "Copy command"
-                                              }
-                                            >
-                                              {isCopied ? (
-                                                <Check className="h-4 w-4 mr-2" />
-                                              ) : (
-                                                <Copy className="h-4 w-4 mr-2" />
-                                              )}
-                                              {isCopied
-                                                ? "Copied!"
-                                                : "Copy command"}
-                                            </Button>
-                                            <Dialog>
-                                              <DialogTrigger asChild>
+                                                  ) || "video"
+                                                }-quicktime.mp4"`}
+                                              </div>
+                                              <div className="p-2">
                                                 <Button
                                                   variant="ghost"
                                                   size="sm"
                                                   className="h-8"
+                                                  onClick={() => {
+                                                    const filename =
+                                                      downloadLink?.filename ||
+                                                      "input.mp4";
+                                                    const outputName =
+                                                      filename.replace(
+                                                        /\.[^/.]+$/,
+                                                        ""
+                                                      ) + "-quicktime.mp4";
+                                                    const command = `ffmpeg -i "path/to/file/${filename}" -c:v libx264 -c:a aac -b:a 192k -movflags +faststart -pix_fmt yuv420p "path/to/file/${outputName}"`;
+                                                    navigator.clipboard.writeText(
+                                                      command
+                                                    );
+                                                    setIsCopied(true);
+                                                    setTimeout(
+                                                      () => setIsCopied(false),
+                                                      2000
+                                                    );
+                                                    toast.success(
+                                                      "Command copied!"
+                                                    );
+                                                  }}
+                                                  aria-label={
+                                                    isCopied
+                                                      ? "Command copied"
+                                                      : "Copy command"
+                                                  }
                                                 >
-                                                  <Download className="h-4 w-4 mr-2" />
-                                                  FFmpeg not installed?
+                                                  {isCopied ? (
+                                                    <Check className="h-4 w-4 mr-2" />
+                                                  ) : (
+                                                    <Copy className="h-4 w-4 mr-2" />
+                                                  )}
+                                                  {isCopied
+                                                    ? "Copied!"
+                                                    : "Copy command"}
                                                 </Button>
-                                              </DialogTrigger>
-                                              <DialogContent className="sm:max-w-[425px]">
-                                                <DialogHeader>
-                                                  <DialogTitle>
-                                                    Install FFmpeg
-                                                  </DialogTitle>
-                                                  <DialogDescription>
-                                                    Follow the instructions
-                                                    below to install FFmpeg on
-                                                    your system.
-                                                  </DialogDescription>
-                                                </DialogHeader>
-                                                <div className="space-y-4">
-                                                  <div>
-                                                    <h4 className="font-medium mb-2">
-                                                      macOS
-                                                    </h4>
-                                                    <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
-                                                      <code>
-                                                        brew install ffmpeg
-                                                      </code>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-6 px-2"
-                                                        onClick={() => {
-                                                          navigator.clipboard.writeText(
-                                                            "brew install ffmpeg"
-                                                          );
-                                                          setIsMacCopied(true);
-                                                          setTimeout(
-                                                            () =>
-                                                              setIsMacCopied(
-                                                                false
-                                                              ),
-                                                            2000
-                                                          );
-                                                          toast.success(
-                                                            "Command copied!"
-                                                          );
-                                                        }}
-                                                      >
-                                                        {isMacCopied ? (
-                                                          <Check className="h-3 w-3" />
-                                                        ) : (
-                                                          <Copy className="h-3 w-3" />
-                                                        )}
-                                                      </Button>
-                                                    </div>
-                                                  </div>
-                                                  <div>
-                                                    <h4 className="font-medium mb-2">
-                                                      Windows
-                                                    </h4>
-                                                    <div className="space-y-3">
-                                                      <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
-                                                        <code>
-                                                          winget install ffmpeg
-                                                        </code>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="h-6 px-2"
-                                                          onClick={() => {
-                                                            navigator.clipboard.writeText(
-                                                              "winget install ffmpeg"
-                                                            );
-                                                            setIsWinCopied(
-                                                              true
-                                                            );
-                                                            setTimeout(
-                                                              () =>
-                                                                setIsWinCopied(
-                                                                  false
-                                                                ),
-                                                              2000
-                                                            );
-                                                            toast.success(
-                                                              "Command copied!"
-                                                            );
-                                                          }}
-                                                        >
-                                                          {isWinCopied ? (
-                                                            <Check className="h-3 w-3" />
-                                                          ) : (
-                                                            <Copy className="h-3 w-3" />
-                                                          )}
-                                                        </Button>
-                                                      </div>
-                                                      <p className="text-sm text-muted-foreground">
-                                                        Or manually:
-                                                      </p>
-                                                      <ol className="list-decimal list-inside space-y-2 text-sm">
-                                                        <li>
-                                                          Download the latest
-                                                          build from{" "}
-                                                          <a
-                                                            href="https://github.com/BtbN/FFmpeg-Builds/releases"
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-primary underline hover:underline-offset-4 hover:underline"
-                                                          >
-                                                            FFmpeg Builds
-                                                          </a>
-                                                        </li>
-                                                        <li>
-                                                          Extract the ZIP file
-                                                        </li>
-                                                        <li>
-                                                          Add the bin folder to
-                                                          your system&apos;s
-                                                          PATH
-                                                        </li>
-                                                      </ol>
-                                                    </div>
-                                                  </div>
-                                                  <div>
-                                                    <h4 className="font-medium mb-2">
-                                                      Linux (Ubuntu/Debian)
-                                                    </h4>
-                                                    <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
-                                                      <code>
-                                                        sudo apt install ffmpeg
-                                                      </code>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-6 px-2"
-                                                        onClick={() => {
-                                                          navigator.clipboard.writeText(
-                                                            "sudo apt install ffmpeg"
-                                                          );
-                                                          setIsLinuxCopied(
-                                                            true
-                                                          );
-                                                          setTimeout(
-                                                            () =>
-                                                              setIsLinuxCopied(
-                                                                false
-                                                              ),
-                                                            2000
-                                                          );
-                                                          toast.success(
-                                                            "Command copied!"
-                                                          );
-                                                        }}
-                                                      >
-                                                        {isLinuxCopied ? (
-                                                          <Check className="h-3 w-3" />
-                                                        ) : (
-                                                          <Copy className="h-3 w-3" />
-                                                        )}
-                                                      </Button>
-                                                    </div>
-                                                  </div>
-                                                  <div className="text-sm text-muted-foreground mt-4">
-                                                    For more information, visit
-                                                    the{" "}
-                                                    <a
-                                                      href="https://ffmpeg.org/download.html"
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="text-primary hover:underline"
+                                                <Dialog>
+                                                  <DialogTrigger asChild>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      className="h-8"
                                                     >
-                                                      official FFmpeg website
-                                                    </a>
-                                                    .
-                                                  </div>
-                                                </div>
-                                              </DialogContent>
-                                            </Dialog>
+                                                      <Download className="h-4 w-4 mr-2" />
+                                                      FFmpeg not installed?
+                                                    </Button>
+                                                  </DialogTrigger>
+                                                  <DialogContent className="sm:max-w-[425px]">
+                                                    <DialogHeader>
+                                                      <DialogTitle>
+                                                        Install FFmpeg
+                                                      </DialogTitle>
+                                                      <DialogDescription>
+                                                        Follow the instructions
+                                                        below to install FFmpeg
+                                                        on your system.
+                                                      </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="space-y-4">
+                                                      <div>
+                                                        <h4 className="font-medium mb-2">
+                                                          macOS
+                                                        </h4>
+                                                        <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
+                                                          <code>
+                                                            brew install ffmpeg
+                                                          </code>
+                                                          <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 px-2"
+                                                            onClick={() => {
+                                                              navigator.clipboard.writeText(
+                                                                "brew install ffmpeg"
+                                                              );
+                                                              setIsMacCopied(
+                                                                true
+                                                              );
+                                                              setTimeout(
+                                                                () =>
+                                                                  setIsMacCopied(
+                                                                    false
+                                                                  ),
+                                                                2000
+                                                              );
+                                                              toast.success(
+                                                                "Command copied!"
+                                                              );
+                                                            }}
+                                                          >
+                                                            {isMacCopied ? (
+                                                              <Check className="h-3 w-3" />
+                                                            ) : (
+                                                              <Copy className="h-3 w-3" />
+                                                            )}
+                                                          </Button>
+                                                        </div>
+                                                      </div>
+                                                      <div>
+                                                        <h4 className="font-medium mb-2">
+                                                          Windows
+                                                        </h4>
+                                                        <div className="space-y-3">
+                                                          <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
+                                                            <code>
+                                                              winget install
+                                                              ffmpeg
+                                                            </code>
+                                                            <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                              className="h-6 px-2"
+                                                              onClick={() => {
+                                                                navigator.clipboard.writeText(
+                                                                  "winget install ffmpeg"
+                                                                );
+                                                                setIsWinCopied(
+                                                                  true
+                                                                );
+                                                                setTimeout(
+                                                                  () =>
+                                                                    setIsWinCopied(
+                                                                      false
+                                                                    ),
+                                                                  2000
+                                                                );
+                                                                toast.success(
+                                                                  "Command copied!"
+                                                                );
+                                                              }}
+                                                            >
+                                                              {isWinCopied ? (
+                                                                <Check className="h-3 w-3" />
+                                                              ) : (
+                                                                <Copy className="h-3 w-3" />
+                                                              )}
+                                                            </Button>
+                                                          </div>
+                                                          <p className="text-sm text-muted-foreground">
+                                                            Or manually:
+                                                          </p>
+                                                          <ol className="list-decimal list-inside space-y-2 text-sm">
+                                                            <li>
+                                                              Download the
+                                                              latest build from{" "}
+                                                              <a
+                                                                href="https://github.com/BtbN/FFmpeg-Builds/releases"
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-primary underline hover:underline-offset-4 hover:underline"
+                                                              >
+                                                                FFmpeg Builds
+                                                              </a>
+                                                            </li>
+                                                            <li>
+                                                              Extract the ZIP
+                                                              file
+                                                            </li>
+                                                            <li>
+                                                              Add the bin folder
+                                                              to your
+                                                              system&apos;s PATH
+                                                            </li>
+                                                          </ol>
+                                                        </div>
+                                                      </div>
+                                                      <div>
+                                                        <h4 className="font-medium mb-2">
+                                                          Linux (Ubuntu/Debian)
+                                                        </h4>
+                                                        <div className="bg-slate-100 dark:bg-slate-900 rounded-md p-3 flex items-center justify-between">
+                                                          <code>
+                                                            sudo apt install
+                                                            ffmpeg
+                                                          </code>
+                                                          <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 px-2"
+                                                            onClick={() => {
+                                                              navigator.clipboard.writeText(
+                                                                "sudo apt install ffmpeg"
+                                                              );
+                                                              setIsLinuxCopied(
+                                                                true
+                                                              );
+                                                              setTimeout(
+                                                                () =>
+                                                                  setIsLinuxCopied(
+                                                                    false
+                                                                  ),
+                                                                2000
+                                                              );
+                                                              toast.success(
+                                                                "Command copied!"
+                                                              );
+                                                            }}
+                                                          >
+                                                            {isLinuxCopied ? (
+                                                              <Check className="h-3 w-3" />
+                                                            ) : (
+                                                              <Copy className="h-3 w-3" />
+                                                            )}
+                                                          </Button>
+                                                        </div>
+                                                      </div>
+                                                      <div className="text-sm text-muted-foreground mt-4">
+                                                        For more information,
+                                                        visit the{" "}
+                                                        <a
+                                                          href="https://ffmpeg.org/download.html"
+                                                          target="_blank"
+                                                          rel="noopener noreferrer"
+                                                          className="text-primary hover:underline"
+                                                        >
+                                                          official FFmpeg
+                                                          website
+                                                        </a>
+                                                        .
+                                                      </div>
+                                                    </div>
+                                                  </DialogContent>
+                                                </Dialog>
+                                              </div>
+                                            </div>
+                                            <p className="mt-4 text-sm text-muted-foreground">
+                                              This command:
+                                            </p>
+                                            <ul className="mt-2 list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                                              <li>
+                                                Converts video to H.264 codec
+                                                (QuickTime compatible)
+                                              </li>
+                                              <li>
+                                                Converts audio to AAC format at
+                                                192kbps
+                                              </li>
+                                              <li>
+                                                Enables fast start for instant
+                                                playback
+                                              </li>
+                                              <li>
+                                                Uses compatible color format
+                                                (yuv420p)
+                                              </li>
+                                            </ul>
                                           </div>
+                                          <DrawerFooter>
+                                            <DrawerClose asChild>
+                                              <Button variant="outline">
+                                                Close
+                                              </Button>
+                                            </DrawerClose>
+                                          </DrawerFooter>
                                         </div>
-                                        <p className="mt-4 text-sm text-muted-foreground">
-                                          This command:
-                                        </p>
-                                        <ul className="mt-2 list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                                          <li>
-                                            Converts video to H.264 codec
-                                            (QuickTime compatible)
-                                          </li>
-                                          <li>
-                                            Converts audio to AAC format at
-                                            192kbps
-                                          </li>
-                                          <li>
-                                            Enables fast start for instant
-                                            playback
-                                          </li>
-                                          <li>
-                                            Uses compatible color format
-                                            (yuv420p)
-                                          </li>
-                                        </ul>
-                                      </div>
-                                      <DrawerFooter>
-                                        <DrawerClose asChild>
-                                          <Button variant="outline">
-                                            Close
-                                          </Button>
-                                        </DrawerClose>
-                                      </DrawerFooter>
-                                    </div>
-                                  </DrawerContent>
-                                </Drawer>
-                              </span>
-                            </FormLabel>
-                            <FormDescription className="hidden sm:block">
-                              Convert video to H.264/AAC format for better
-                              compatibility with QuickTime Player
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {downloadProgress && (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Downloading video...</span>
-                          <span>
-                            {Math.round(downloadProgress.percentage)}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={downloadProgress.percentage}
-                          className="w-full"
+                                      </DrawerContent>
+                                    </Drawer>
+                                  </span>
+                                </FormLabel>
+                                <FormDescription className="hidden sm:block">
+                                  Convert video to H.264/AAC format for better
+                                  compatibility with QuickTime Player
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
                         />
-                        <div className="text-xs text-muted-foreground">
-                          {formatBytes(downloadProgress.loaded)}
-                          {videoInfo && ` / ${videoInfo.filesize_formatted}`}
-                        </div>
-                      </div>
-                    )}
 
-                    {isLoadingInfo || isGeneratingDownload ? (
-                      <div className="w-full border rounded-lg p-4 space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <div className="flex flex-col items-start overflow-hidden min-h-[3.5rem] justify-center">
-                            <AnimatePresence mode="wait">
-                              <motion.span
-                                key={loadingStep?.message}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.2 }}
-                                className="text-sm font-medium"
-                              >
-                                {loadingStep?.message || "Preparing..."}
-                              </motion.span>
-                            </AnimatePresence>
-                            {loadingStep?.substep && (
-                              <AnimatePresence mode="wait">
-                                <motion.span
-                                  key={loadingStep.substep}
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  exit={{ opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="text-xs text-muted-foreground whitespace-nowrap"
-                                >
-                                  {loadingStep.substep}
-                                </motion.span>
-                              </AnimatePresence>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Progress indicator */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden"
-                        >
+                        {downloadProgress && (
                           <motion.div
-                            className="absolute inset-y-0 left-0 bg-primary"
-                            initial={{ width: "0%" }}
-                            animate={{
-                              width: loadingStep
-                                ? `${loadingStep.progress}%`
-                                : "0%",
-                            }}
-                            transition={{
-                              duration: 0.1,
-                              ease: "linear",
-                            }}
-                          />
-                        </motion.div>
-                      </div>
-                    ) : (
-                      <Button
-                        type="submit"
-                        disabled={!isApiAvailable}
-                        className="w-full"
-                      >
-                        Download
-                      </Button>
-                    )}
-                  </>
-                )}
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+                            initial={{ opacity: 0, filter: "blur(30px)" }}
+                            animate={{ opacity: 1, filter: "blur(0px)" }}
+                            transition={{ duration: 0.3 }}
+                            className="space-y-2 mb-4"
+                          >
+                            <div className="flex justify-between text-sm text-muted-foreground">
+                              <span>Downloading video...</span>
+                              <span>
+                                {Math.round(downloadProgress.percentage)}%
+                              </span>
+                            </div>
+                            <Progress
+                              value={downloadProgress.percentage}
+                              className="w-full"
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {formatBytes(downloadProgress.loaded)}
+                              {videoInfo &&
+                                ` / ${videoInfo.filesize_formatted}`}
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {isLoadingInfo || isGeneratingDownload ? (
+                          <motion.div
+                            initial={{ opacity: 0, filter: "blur(30px)" }}
+                            animate={{ opacity: 1, filter: "blur(0px)" }}
+                            transition={{ duration: 0.3 }}
+                            className="w-full border rounded-lg p-4 space-y-4"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <div className="flex flex-col items-start overflow-hidden min-h-[3.5rem] justify-center">
+                                <AnimatePresence mode="wait">
+                                  <motion.span
+                                    key={loadingStep?.message}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="text-sm font-medium"
+                                  >
+                                    {loadingStep?.message || "Preparing..."}
+                                  </motion.span>
+                                </AnimatePresence>
+                                {loadingStep?.substep && (
+                                  <AnimatePresence mode="wait">
+                                    <motion.span
+                                      key={loadingStep.substep}
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      exit={{ opacity: 0 }}
+                                      transition={{ duration: 0.2 }}
+                                      className="text-xs text-muted-foreground whitespace-nowrap"
+                                    >
+                                      {loadingStep.substep}
+                                    </motion.span>
+                                  </AnimatePresence>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Progress indicator */}
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden"
+                            >
+                              <motion.div
+                                className="absolute inset-y-0 left-0 bg-primary"
+                                initial={{ width: "0%" }}
+                                animate={{
+                                  width: loadingStep
+                                    ? `${loadingStep.progress}%`
+                                    : "0%",
+                                }}
+                                transition={{
+                                  duration: 0.1,
+                                  ease: "linear",
+                                }}
+                              />
+                            </motion.div>
+                          </motion.div>
+                        ) : (
+                          <Button
+                            type="submit"
+                            disabled={!isApiAvailable}
+                            className="w-full"
+                          >
+                            Download
+                          </Button>
+                        )}
+                    
+                    </motion.div>
+                  )}
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {downloadLink && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: 20, filter: "blur(30px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -20, filter: "blur(30px)" }}
+            transition={{ duration: 0.5 }}
           >
             <Card>
               <CardHeader>
@@ -1177,7 +1296,12 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  transition={{ delay: 0.3 }}
+                  className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                >
                   <div className="space-y-1">
                     <p className="font-medium">{downloadLink.filename}</p>
                     <p className="text-sm text-muted-foreground">
@@ -1233,12 +1357,12 @@ export default function Home() {
                       </motion.span>
                     </Button>
                   </div>
-                </div>
+                </motion.div>
                 <motion.p
                   className="text-sm text-muted-foreground"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                  transition={{ delay: 0.1 }}
                 >
                   Link expires in {timeLeft}
                 </motion.p>
